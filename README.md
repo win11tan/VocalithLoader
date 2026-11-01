@@ -1,141 +1,169 @@
-VocalithLoader
+# VocalithLoader
 
-给 GPT-SoVITS 权重做零样本语音合成的桌面界面。左边挑模型和参考音频，右边写台词合成，
-底下是历史和日志。推理还是 GPT-SoVITS 自己在跑，这里只是把用起来顺手的那一层做出来。
+Desktop GUI for zero-shot voice synthesis with GPT-SoVITS.
 
-Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没有任何联网组件。
-换台机器整个目录拷过去就能用。
+VocalithLoader wraps the GPT-SoVITS inference pipeline in a desktop window: pick a
+model and a reference clip on the left, write the lines on the right, and the history
+and logs sit underneath. The inference itself still runs inside GPT-SoVITS — this is
+only the layer that makes it comfortable to use.
 
+Windows desktop app. Python + pywebview, the UI is plain local HTML, and nothing in
+the program talks to the network. Copy the folder to another machine and it still works.
 
-安装
+**English** · [简体中文](README.zh-CN.md)
 
-  需要 Python 3.9 以上，以及 WebView2 运行时（Win10、Win11 一般自带，
-  没有就去微软官网下，少了这一步程序开不起来，报的是 pythonnet 那边的错）
+---
 
-    git clone <仓库地址>
-    cd VocalithLoader
-    pip install -r requirements.txt
-    python app.py
+## Install
 
-  或者双击 启动.bat，它会检查依赖，缺了自动装，然后调 app.py。
+Requires Python 3.9+ and the WebView2 runtime (bundled with Windows 10 and 11; grab it
+from Microsoft if missing — without it the app refuses to start and the error comes
+from pythonnet).
 
-  psutil 和 numpy 缺了也能跑，只是端口归属判断会退回系统命令、频谱条会空着。
+```bash
+git clone <repo-url>
+cd VocalithLoader
+pip install -r requirements.txt
+python app.py
+```
 
+Or double-click `启动.bat`. It checks dependencies, installs anything missing, then
+launches `app.py`.
 
-需要先准备什么
+`psutil` and `numpy` are optional. Without them the app still runs; port ownership
+detection falls back to system commands and the spectrum bar stays empty.
 
-  一份 GPT-SoVITS 便携包，目录里要有 runtime\python.exe 和 api_v2.py
-  第一次打开会自动去找，找不到就在「GPT-SoVITS 目录」那一行点「浏览」手动选
+## What you need first
 
-  显卡：NVIDIA 独显，显存 3G 以上。有显卡的情况下 377 字大约 25 秒合成完
-  没有显卡也能跑，纯 CPU 做兜底，同样 377 字要 100 秒左右，四核老笔记本会更久
-  界面显示当前用的是显卡还是处理器，切过去要重启服务才生效
+A GPT-SoVITS portable package — the folder must contain `runtime\python.exe` and
+`api_v2.py`. The app searches for it on first launch. If it can't find it, use the
+**Browse** button on the "GPT-SoVITS directory" row and pick it manually.
 
+GPU: any NVIDIA card with 3 GB+ VRAM. With a GPU, 377 characters take about 25 seconds.
+CPU works as a fallback — the same 377 characters take around 100 seconds, longer on a
+four-core laptop. The UI shows whether GPU or CPU is in use; switching requires
+restarting the service.
 
-第一次用
+## First run
 
-  1. 确认「GPT-SoVITS 目录」指对了
-  2. 点「启动服务」，等模型加载完。这时候进度条会显示加载到第几项，十几秒的事
-  3. 两个下拉里选 GPT 和 SoVITS 权重，点「应用模型」
-  4. 参考音频会自动按当前模型匹配一条训练样本，点「试听」听一下，不对就换一条
-  5. 写上要念的文本，点「合成」
-  6. 出来的音频在历史里双击就能听，右键可以在文件夹里定位
+1. Confirm the GPT-SoVITS directory is correct
+2. Click **Start service** and wait for the model to load — the progress bar shows which
+   item is loading, usually a matter of seconds
+3. Pick the GPT and SoVITS weights from the two dropdowns, click **Apply model**
+4. The reference clip is matched automatically to a training sample belonging to that
+   model. Hit **Preview** to listen; swap it if it sounds wrong
+5. Type the text and click **Synthesize**
+6. Results appear in the history — double-click to play, right-click to reveal in folder
 
+## Timbre and delivery are two different things
 
-音色和语气是两回事
+The SoVITS weights decide the **timbre** — who is speaking. The reference clip decides
+the **delivery** — pacing, pauses, emotional contour.
 
-  音色由 SoVITS 权重决定，也就是「这是谁在说话」
-  语气由参考音频决定，包括语速、停顿、情绪的起伏
+So model A's weights with model B's reference audio gives you A's voice with B's
+cadence. Switching models automatically swaps the reference clip to that model's own
+training sample, specifically to avoid this clash.
 
-  所以 A 角色的模型配 B 角色的参考音频，出来的是 A 的嗓子、B 的腔调。
-  换模型的时候程序会自动把参考音频换成这个模型自己的训练样本，就是为了避免这种夹生。
+The reference text must match the reference audio word for word. Swap the audio without
+updating the text and the timbre quality drops noticeably.
 
-  参考音频必须和参考文本对得上，文本要是那段音频里原原本本说出的话。
-  换了音频不换文本，音色会明显变差。
+To change delivery, change the reference clip. Training sample filenames carry the
+scene, shown in brackets in the dropdown — the same line delivered in different scenes
+comes out differently.
 
-  想换语气就换参考音频。训练样本的文件名里带着场合，下拉里用方括号标出来了，
-  同一句话用不同场合的样本，出来的味道不一样。
+Reference clips have a hard length limit. Anything too short is rejected by the service
+with a 400. The app measures the duration before submitting and tells you which sample
+to switch to.
 
-  参考音频有长度限制，太短会被服务端直接拒绝（400）。程序在提交前会先算一遍时长，
-  不合格会告诉你该换哪一条。
+## About the progress bar
 
+Progress is counted from the output of a service the app started itself, so it's only
+accurate for instances the app owns.
 
-关于进度条
+If the port is already occupied by a GPT-SoVITS service started elsewhere, clicking
+**Start service** asks whether to take over and restart, or to share the existing one.
+Sharing still synthesizes, but progress degrades to a character-count estimate. Take
+over if you want real numbers.
 
-  进度是从程序自己启动的服务输出里数出来的，所以只有程序自己拉起来的服务才准。
+## What's in the folder
 
-  如果端口上已经有一个不是这里启动的 GPT-SoVITS 服务，点「启动服务」会问你
-  「接管并重启」还是「先共用着」。共用能合成，但进度只能按字数估算，
-  想要准确的进度就选接管。
+```
+app.py                 entry point — window and frontend/backend messaging
+engine.py              service process, synthesis, progress, monitoring
+core.py                config, logging, disk paths
+ui/                    the interface; edit styles here
+bg_builtin/            built-in background images
+app.ico                program icon
+config.example.json    sample of every config field
+config.json            live config, machine-specific, not tracked
+logs/                  logs — check here first when something breaks
+output/                generated audio
+启动.bat               double-click this
+VocalithLoader.spec    PyInstaller build config
+```
 
+## Troubleshooting
 
-目录里都有什么
+**Start service does nothing**
+Check `logs\api_err.log`. Usually the GPT-SoVITS directory is wrong, or the port is
+taken by another program.
 
-  app.py                入口，负责开窗和前后端通信
-  engine.py             业务逻辑，管服务进程、合成、进度、监控
-  core.py               数据层，配置读写、日志、路径
-  ui\                   界面文件，改样式的话在这里
-  bg_builtin\           内置的几张背景图
-  app.ico               程序图标
-  config.example.json   配置字段样例，照它手填也行
-  config.json           实际配置，运行时生成，跟机器绑定，不进版本库
-  logs\                 日志，出问题先看这里
-  output\               生成的音频
-  启动.bat              双击这个
-  VocalithLoader.spec   PyInstaller 打包配置
+**Synthesis is slow**
+Check the bottom-right corner — GPU or CPU? If it says CPU while you have a GPU, switch
+it under "Inference device" and restart the service. Three to four times slower on CPU
+is normal, not a hang.
 
+**The voice doesn't sound right**
+Check three things: are the weights the right character's, do the reference audio and
+reference text match, and is the reference clip clean and about five seconds long.
+Get any one of them wrong and the timbre drifts.
 
-出问题先看这里
+**The port is still held after closing**
+The app shuts down any service it started on exit. If the port is still occupied, that
+instance was launched elsewhere — close it from its own window.
 
-  点了启动服务没反应
-    看 logs\api_err.log。多半是 GPT-SoVITS 目录选错了，或者端口被别的程序占着
+## Moving to another machine
 
-  合成很慢
-    先看右下角是显卡还是处理器。有显卡却写着处理器，在「推理设备」那里切过去，
-    然后停掉服务重新启动。CPU 上慢三到四倍是正常的，不是卡住
+Copy the whole folder. If the paths are wrong, re-select the GPT-SoVITS directory or
+click **Auto-detect**. The config travels with `config.json`.
 
-  声音不像
-    检查三件事：权重是不是这个角色的、参考音频和参考文本对不对得上、
-    参考音频有没有五秒左右且干净。三条里错一条音色就会走样
+## Building an executable
 
-  关掉程序之后端口还占着
-    程序退出时会把自己拉起来的服务一并关掉。如果还占着，说明那是别处启动的，
-    去它自己的窗口里关
+```bash
+pip install pyinstaller
+pyinstaller VocalithLoader.spec
+```
 
+Output lands in `dist\`. The spec already bundles `ui` and `bg_builtin`, and points the
+icon at `app.ico` in the project root — replace that file to change the icon.
 
-换机器
+## Architecture
 
-  把整个文件夹拷过去就行。目录不对就在「GPT-SoVITS 目录」那里重新选一次，
-  或者点「自动探测」让它自己找。配置会跟着 config.json 一起走。
+Three layers, kept separate: `app.py` only touches the window and messaging, `engine.py`
+only touches business logic and subprocesses, `core.py` only touches config and disk.
 
+The frontend doesn't call Python business functions directly. Events go into a queue
+that the frontend polls every 120 ms. The reason: WebView2's controller is a COM object
+that can only be touched on the UI thread — calling it from an engine thread throws an
+`InvalidCastException` which gets swallowed, and the symptom is that logs and monitors
+simply stop refreshing. Polling removes the cross-thread problem at the root, at the
+cost of up to 120 ms of latency.
 
-打包成 exe
+Most features only need `engine.py` and `ui/app.js`. `app.py` rarely changes.
 
-  pip install pyinstaller
-  pyinstaller VocalithLoader.spec
+## Assets and license
 
-  产物在 dist\ 里。spec 已经把 ui 和 bg_builtin 一起打进包，
-  图标指向项目根的 app.ico，改图标就改 app.ico 本身。
+The **code** is released under the MIT license — see [LICENSE](LICENSE).
 
+The icon and built-in backgrounds are official character art from the mobile game
+*Azur Lane* (characters Helena and Helena META). Copyright belongs to the original
+rights holders and is **not** covered by the MIT license. See [NOTICE](NOTICE) for
+details. This repository contains no game voice lines, no model weights, and no
+training data.
 
-项目结构与约定
+Those assets ship with the repo only so a fresh clone can show a real interface. If you
+plan to use this commercially or redistribute it, replace them first: swap `app.ico`,
+and delete the images in `bg_builtin/` — the UI falls back to a solid background.
 
-  三层分得很清楚：app.py 只碰窗口和消息，engine.py 只碰业务和子进程，
-  core.py 只碰配置和磁盘。前端不直接调 Python 业务函数，走 Bridge 轮询，
-  原因是 WebView2 的控制器是 COM 对象，只能在 UI 线程碰，跨线程会抛异常被吞掉。
-
-  想加功能一般动 engine.py 和 ui\app.js 就够，app.py 很少需要改。
-
-
-素材与许可
-
-  代码以 MIT 许可证发布，全文见 LICENSE。
-
-  图标和内置背景用的是《碧蓝航线》里海伦娜及海伦娜·META 的官方立绘，
-  版权归原权利人，不属于 MIT 授权范围，详细说明见 NOTICE。
-  本仓库不含任何游戏语音、模型权重或训练数据。
-
-  这些素材随仓库分发只是为了让人克隆下来就能跑起来看界面。如果要商用或再分发，
-  请先把它们换掉：图标改 app.ico，背景删掉 bg_builtin\ 里的图，界面会退回纯色底。
-
-  本项目与《碧蓝航线》的开发方、发行方没有任何关系，非官方、不商用、不收费。
+This project has no affiliation with the developers or publishers of *Azur Lane*. It is
+unofficial, non-commercial, and free of charge.
