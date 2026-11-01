@@ -94,9 +94,17 @@ window.__push = function (msg) {
     case "toast":
       toastLike(d.text, d.kind !== "err");
       break;
-    case "hint":
-      modal(d.title || t("提示"), d.body || "");
+    case "hint": {
+      // 向导类提示可以带动作：okAction / cancelAction 是 "download" 或 "browse"
+      const act = (name) => {
+        if (name === "download" && d.url) return () => api().open_url(d.url);
+        if (name === "browse") return () => $("btnBrowse").click();
+        return null;
+      };
+      modal(d.title || t("提示"), d.body || "",
+        d.okText, act(d.okAction), d.cancelText, act(d.cancelAction));
       break;
+    }
     case "model_now":
       $("modelNow").textContent = d.text;
       $("modelNow").style.color = d.ok ? "var(--accent)" : "var(--err)";
@@ -1016,6 +1024,15 @@ function startPolling() {
     } catch (e) { /* 窗口正在关 */ }
     running = false;
   }, 120);
+}
+
+// 语言下拉只依赖 i18n.js 有没有加载，和后端状态无关。
+// 之前它挂在 init() 里面，init 中间任何一步抛错它就永远不出现，
+// 而界面上其他地方照样能靠事件更新，所以很难看出少了个控件。
+try {
+  initLangSelect();
+} catch (e) {
+  console.error("[i18n] 语言下拉初始化失败", e);
 }
 
 window.addEventListener("pywebviewready", () => {

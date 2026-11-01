@@ -141,6 +141,22 @@ class Api:
     def open_in_explorer(self, path):
         return self.engine.open_in_explorer(path)
 
+    def open_url(self, url):
+        """在系统浏览器里打开一个网页。
+
+        只放行 http/https：这个接口是给向导里「去下载」那个按钮用的，
+        不该变成能启动任意本地程序的入口。
+        """
+        url = (url or "").strip()
+        if not url.lower().startswith(("http://", "https://")):
+            return {"ok": False, "msg": "只支持 http 或 https 地址"}
+        try:
+            import webbrowser
+            webbrowser.open(url)
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "msg": "打不开浏览器：%s" % e}
+
     def clear_history(self):
         return self.engine.clear_history()
 
@@ -290,15 +306,33 @@ def main():
                 eng.set_gsv_dir(found[0])
                 bridge.emit("cfg", eng.snapshot()["cfg"])
             else:
-                eng.log("没找到 GPT-SoVITS 便携包，请点「浏览」手动选目录")
-                # 只写日志的话，第一次打开的人多半看不见下面那行字，
-                # 会以为程序坏了。这里直接弹一次说明
+                eng.log("没找到 GPT-SoVITS 便携包，需要先准备环境")
+                # 第一次打开、电脑上又没有 GPT-SoVITS 的人，看到界面是懵的：
+                # 程序能开，但什么都不发生。这里把「缺什么、多大、怎么装、装完
+                # 什么样」一次讲完，而不是只丢一句「点浏览选目录」。
                 bridge.emit("hint", {
-                    "title": "先指一下 GPT-SoVITS 在哪",
-                    "body": "常见位置里没找到 GPT-SoVITS 便携包。<br><br>"
-                            "点顶上的「浏览」，选它所在的文件夹，"
-                            "那个文件夹里要有 <b>runtime\\python.exe</b> 和 <b>api_v2.py</b>。<br><br>"
-                            "选对了模型列表会自动刷出来，不用再配别的。",
+                    "title": "还差一个 GPT-SoVITS 才能开始",
+                    "body": (
+                        "VocalithLoader 本身只是操作界面，真正干活的是另一个软件，"
+                        "叫 GPT-SoVITS。它不在这个程序里，需要你另外准备。"
+                        "<br><br>"
+                        "<b>有多大</b>：官方整合包解压后大约 30 GB，"
+                        "其中推理必需的部分约 13 GB。请先确认磁盘够用。"
+                        "<br><br>"
+                        "<b>怎么装</b>：<br>"
+                        "1. 点下面的「打开下载页面」，在页面里找最新的整合包下载<br>"
+                        "2. 下载下来是一个压缩包，右键选「解压到当前文件夹」<br>"
+                        "3. 解压完打开那个文件夹，应该能直接看到 "
+                        "<b>runtime</b> 文件夹和 <b>api_v2.py</b> 文件<br>"
+                        "4. 回到这里点「选目录」，选那个文件夹"
+                        "<br><br>"
+                        "已经有的话，直接点「选目录」。"
+                    ),
+                    "okText": "打开下载页面",
+                    "okAction": "download",
+                    "url": "https://github.com/RVC-Boss/GPT-SoVITS/releases",
+                    "cancelText": "选目录",
+                    "cancelAction": "browse",
                 })
         else:
             eng.refresh_models()
