@@ -92,6 +92,9 @@ DEFAULT_CONFIG = {
     "gsv_dir": "",
     "host": "127.0.0.1",
     "port": 9880,
+    # 界面语言。和 prompt_lang / text_lang 那些不是一回事：那些决定合成出来
+    # 是什么语言，这个只决定按钮和标签上的字
+    "ui_lang": "zh",
     "gpt_path": "",
     "sovits_path": "",
     "ref_audio": "",

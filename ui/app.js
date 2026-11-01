@@ -7,7 +7,8 @@
 const LANGS = ["ja", "zh", "en", "ko", "yue", "auto"];
 // 值还是那边的语言代码，只是界面上别再让人看 ja、zh 这种
 const LANG_ZH = { ja: "日语", zh: "中文", en: "英语", ko: "韩语", yue: "粤语", auto: "自动" };
-const LANG_PAIRS = LANGS.map((v) => [v, LANG_ZH[v] || v]);
+// 显示名要跟着界面语言变，所以每次现算，不能在加载时 map 死
+const langPairs = () => LANGS.map((v) => [v, t(LANG_ZH[v] || v)]);
 const SPLITS = ["cut0", "cut1", "cut2", "cut3", "cut4", "cut5"];
 const DEVICES = ["自动", "显卡 GPU", "处理器 CPU"];
 const $ = (id) => document.getElementById(id);
@@ -94,7 +95,7 @@ window.__push = function (msg) {
       toastLike(d.text, d.kind !== "err");
       break;
     case "hint":
-      modal(d.title || "提示", d.body || "");
+      modal(d.title || t("提示"), d.body || "");
       break;
     case "model_now":
       $("modelNow").textContent = d.text;
@@ -107,6 +108,7 @@ window.__push = function (msg) {
       break;
     case "cfg":
       S.cfg = d;
+      if (d.ui_lang && d.ui_lang !== I18N_CUR) setLang(d.ui_lang);
       fillControls();
       break;
   }
@@ -124,6 +126,38 @@ function syncButtons() {
   $("btnSynth").disabled = !S.ready || S.busy;
   $("btnApplyModel").disabled = !S.ready;
   $("btnApplyRef").disabled = !S.ready;
+}
+
+/* 界面语言下拉。注意它和上面 LANGS 里那些语音语言不是一回事：
+   那些决定合成出来是哪种语言，这个只换界面上的字。 */
+function initLangSelect() {
+  const sel = $("langSel");
+  if (!sel || sel.options.length) return;
+  sel.innerHTML = Object.keys(I18N_LANGS)
+    .map((code) => '<option value="' + esc(code) + '">' + esc(I18N_LANGS[code]) + "</option>")
+    .join("");
+  sel.value = I18N_CUR;
+  sel.onchange = async () => {
+    setLang(sel.value);
+    try {
+      await api().update_cfg({ ui_lang: sel.value });
+    } catch (e) { /* 存不下也不影响这次会话 */ }
+  };
+}
+
+/* 切换语言后，静态文本已经由 applyI18n 刷完，这里补上动态生成的部分。
+   刻意不碰输入框和文本框：用户可能正写到一半。 */
+function renderAllForLang() {
+  const pl = $("selPLang").value;
+  const tl = $("selTLang").value;
+  const dv = $("selDevice").value;
+  fillSelectPairs($("selPLang"), langPairs());
+  fillSelectPairs($("selTLang"), langPairs());
+  fillSelect($("selDevice"), DEVICES, t);
+  $("selPLang").value = pl;
+  $("selTLang").value = tl;
+  if (dv) $("selDevice").value = dv;
+  renderHistory(S.history);
 }
 
 /* ── 日志 ─────────────────────────────────────────────── */
@@ -248,13 +282,13 @@ async function fillRefList() {
 }
 
 /* ── 下拉框 ───────────────────────────────────────────── */
-function fillSelect(sel, values) {
+function fillSelect(sel, values, labelOf) {
   const keep = sel.value;
   sel.innerHTML = "";
   for (const v of values) {
     const o = document.createElement("option");
-    o.value = v;
-    o.textContent = v;
+    o.value = v;                              // 值是后端认的字面量，不翻译
+    o.textContent = labelOf ? labelOf(v) : v; // 显示名才跟着语言走
     sel.appendChild(o);
   }
   if (values.includes(keep)) sel.value = keep;
@@ -264,10 +298,11 @@ function fillSelect(sel, values) {
 function fillSelectPairs(sel, pairs) {
   const keep = sel.value;
   sel.innerHTML = "";
-  for (const [v, t] of pairs) {
+  // 循环变量别叫 t：那会遮住全局的翻译函数，调用时不报错但结果全错
+  for (const [v, label] of pairs) {
     const o = document.createElement("option");
     o.value = v;
-    o.textContent = t;
+    o.textContent = label;
     sel.appendChild(o);
   }
   const vals = pairs.map((p) => p[0]);
@@ -305,10 +340,10 @@ function fillModels(models) {
 /* ── 控件填充 ─────────────────────────────────────────── */
 function fillControls() {
   const c = S.cfg || {};
-  fillSelectPairs($("selPLang"), LANG_PAIRS);
-  fillSelectPairs($("selTLang"), LANG_PAIRS);
+  fillSelectPairs($("selPLang"), langPairs());
+  fillSelectPairs($("selTLang"), langPairs());
   fillSelect($("selSplit"), SPLITS);
-  fillSelect($("selDevice"), DEVICES);
+  fillSelect($("selDevice"), DEVICES, t);
 
   $("gsvDir").value = c.gsv_dir || "";
   $("promptText").value = c.prompt_text || "";
@@ -582,7 +617,7 @@ function modal(title, html, okText, okFn, cancelText, cancelFn) {
   $("modalTitle").textContent = title;
   $("modalBody").innerHTML = html;
   const ok = $("modalOk"), cancel = $("modalCancel");
-  ok.textContent = okText || "知道了";
+  ok.textContent = okText || t("知道了");
   ok.onclick = () => { if (okFn) setTimeout(okFn, 0); };
   if (cancelText) {
     cancel.textContent = cancelText;
@@ -936,6 +971,9 @@ async function init() {
   S.lastWav = st.last_wav || "";
   S.ready = !!st.ready;
   S.busy = !!st.busy;
+  // 界面语言跟着配置走：第一次打开是中文，切过之后记住
+  initLangSelect();
+  setLang(S.cfg.ui_lang || I18N_CUR);
   fillControls();
   await fillRefList();
   renderHistory(S.history);
@@ -955,7 +993,7 @@ async function init() {
   drawWave(0);
   drawSpec(0);
   drawMonitor([], []);
-  setStatus("服务未启动", "");
+  setStatus(t("服务未启动"), "");
   // 浏览器偶尔会因为某个输入框把页面卷到中间，复位一下
   window.scrollTo(0, 0);
   const sc = document.querySelector(".main");
