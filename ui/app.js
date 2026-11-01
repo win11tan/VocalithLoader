@@ -201,7 +201,7 @@ async function fillRefList() {
   if (!refList.length) {
     const o = document.createElement("option");
     o.value = "";
-    o.textContent = "（没找到参考音频，点「浏览…」选一个）";
+    o.textContent = t("（没找到参考音频，点「浏览…」选一个）");
     sel.appendChild(o);
     return;
   }
@@ -221,7 +221,7 @@ async function fillRefList() {
     const g = document.createElement("optgroup");
     const zh = list[0].model_zh || "";
     if (!k) {
-      g.label = "通用音频（没有专属样本时，任意干净人声都能顶替）";
+      g.label = t("通用音频（没有专属样本时，任意干净人声都能顶替）");
     } else {
       g.label = zh && zh !== k ? zh + "（" + k + "）" : k;
     }
@@ -318,7 +318,7 @@ function fillModels(models) {
     if (!items.length) {
       const o = document.createElement("option");
       o.value = "";
-      o.textContent = "（没扫到权重）";
+      o.textContent = t("（没扫到权重）");
       sel.appendChild(o);
       return;
     }
@@ -488,15 +488,15 @@ function drawSpec(tSec) {
 function paintMonitor(m) {
   const cpu = m.cpu || {};
   const gpu = m.gpu;
-  $("cpuLine").textContent = (cpu.name || "处理器") +
+  $("cpuLine").textContent = (cpu.name || t("处理器")) +
     "   " + Math.round(cpu.pct || 0) + "%   " +
     ((cpu.mhz || 0) / 1000).toFixed(2) + " GHz";
   if (gpu) {
-    $("gpuLine").textContent = (gpu.name || "显卡") +
+    $("gpuLine").textContent = (gpu.name || t("显卡")) +
       "   " + gpu.pct + "%   " + gpu.ghz + " GHz   " + gpu.temp + "°C   " +
       gpu.mem + "/" + gpu.total + " GB";
   } else {
-    $("gpuLine").textContent = m.gpu_ok ? "读取中…" : "未检测到独立显卡";
+    $("gpuLine").textContent = m.gpu_ok ? t("读取中…") : t("未检测到独立显卡");
   }
   drawMonitor(cpu.hist || [], (gpu && gpu.hist) || []);
 }
@@ -660,14 +660,14 @@ async function bindUI() {
       S.models = r.models || st.models;
       fillModels(S.models);
     } else if (r.msg && r.msg !== "取消") {
-      modal("目录不对", esc(r.msg));
+      modal(t("目录不对"), esc(r.msg));
     }
   };
 
   $("btnAuto").onclick = async () => {
     const r = await api().auto_detect();
     if (!r.ok) {
-      modal("没找到", "常见位置都没找到 GPT-SoVITS 便携包，请手动点「浏览」选目录。");
+      modal(t("没找到"), t("常见位置都没找到 GPT-SoVITS 便携包，请手动点「浏览」选目录。"));
       return;
     }
     if (r.found.length === 1) {
@@ -683,7 +683,7 @@ async function bindUI() {
       const list = r.found.map((p) =>
         '<div class="preset"><span class="detail">' + esc(p) + "</span>" +
         '<button class="btn accent" data-p="' + esc(p) + '">用这个</button></div>').join("");
-      modal("找到多个", '<div class="preset-list">' + list + "</div>");
+      modal(t("找到多个"), '<div class="preset-list">' + list + "</div>");
       $("modalBody").querySelectorAll("button[data-p]").forEach((b) => {
         b.onclick = async () => {
           const rr = await api().set_gsv_dir(b.dataset.p);
@@ -705,20 +705,21 @@ async function bindUI() {
     const r = await api().start_service();
     if (r.reused) {
       // 端口上那个不是这边起的，进度读不到。问一句要不要接管，别自作主张杀别人的进程
-      modal("端口上已经有服务",
-        "端口 " + (r.port || "") + " 上已经有一个 GPT-SoVITS 服务" +
-        (r.pid ? "（进程 " + r.pid + "）" : "") +
-        "，它不是这个界面启动的。<br><br>" +
-        "共用它照样能合成，但加载模型和合成的进度都读不到，进度条只能按字数估算。<br>" +
-        "接管会先把这个进程关掉，再用这里的运行环境重新启动一份，进度就准了，代价是模型要重新加载一次。",
-        "接管并重启", async () => {
-          const t = await api().takeover_service();
-          if (!t.ok) modal("接管服务", esc(t.msg));
+      modal(t("端口上已经有服务"),
+        t("端口 {port} 上已经有一个 GPT-SoVITS 服务{pid}，它不是这个界面启动的。",
+          { port: r.port || "", pid: r.pid ? "（进程 " + r.pid + "）" : "" }) +
+        "<br><br>" +
+        t("共用它照样能合成，但加载模型和合成的进度都读不到，进度条只能按字数估算。") + "<br>" +
+        t("接管会先把这个进程关掉，再用这里的运行环境重新启动一份，进度就准了，代价是模型要重新加载一次。"),
+        t("接管并重启"), async () => {
+          // 变量别叫 t：那是全局翻译函数的名字，遮住之后这个回调里的文字全对不上
+          const rv = await api().takeover_service();
+          if (!rv.ok) modal(t("接管服务"), esc(rv.msg));
         },
-        "先共用着", null);
+        t("先共用着"), null);
       return;
     }
-    if (!r.ok) modal("启动服务", esc(r.msg));
+    if (!r.ok) modal(t("启动服务"), esc(r.msg));
   };
   $("btnStop").onclick = () => api().stop_service();
 
@@ -734,22 +735,22 @@ async function bindUI() {
     await followModel();
     await pushCfg();
     const r = await api().apply_model();
-    if (!r.ok) modal("应用模型", esc(r.msg));
+    if (!r.ok) modal(t("应用模型"), esc(r.msg));
   };
 
   $("btnPresets").onclick = async () => {
     const list = await api().get_presets();
     if (!list.length) {
-      modal("已存组合", '<div class="empty">还没有绑定过组合。<br>' +
-        "在左边选好模型和参考音频，点「绑定到当前模型」，这里就会出现一条。" +
-        "<br>换机器或换目录时，绑定的文件找不到会自动隐藏，不会留一条点不动的废记录。</div>");
+      modal(t("已存组合"), '<div class="empty">' + t("还没有绑定过组合。") + "<br>" +
+        t("在左边选好模型和参考音频，点「绑定到当前模型」，这里就会出现一条。") +
+        "<br>" + t("换机器或换目录时，绑定的文件找不到会自动隐藏，不会留一条点不动的废记录。") + "</div>");
       return;
     }
     const html = '<div class="preset-list">' + list.map((p) =>
       '<div class="preset"><span class="name">' + esc(p.name) + "</span>" +
-      '<span class="detail">' + esc(p.ref ? p.ref.split(/[\\/]/).pop() : "无参考") + "</span>" +
-      '<button class="btn accent" data-n="' + esc(p.name) + '">套用</button></div>').join("") + "</div>";
-    modal("已存组合", html);
+      '<span class="detail">' + esc(p.ref ? p.ref.split(/[\\/]/).pop() : t("无参考")) + "</span>" +
+      '<button class="btn accent" data-n="' + esc(p.name) + '">' + t("套用") + '</button></div>').join("") + "</div>";
+    modal(t("已存组合"), html);
     $("modalBody").querySelectorAll("button[data-n]").forEach((b) => {
       b.onclick = () => doApplyPreset(b.dataset.n);
     });
@@ -817,15 +818,15 @@ async function bindUI() {
   $("btnApplyRef").onclick = async () => {
     await pushCfg();
     const r = await api().apply_ref();
-    if (!r.ok) modal("应用参考", esc(r.msg));
+    if (!r.ok) modal(t("应用参考"), esc(r.msg));
   };
 
   $("btnBindRef").onclick = async () => {
     await pushCfg();
     const r = await api().bind_ref();
     $("refState").textContent = r.ok
-      ? "参考：已绑定到当前模型"
-      : "参考：未绑定（换模型不会自动换参考）";
+      ? t("参考：已绑定到当前模型")
+      : t("参考：未绑定（换模型不会自动换参考）");
   };
 
   $("btnSynth").onclick = async () => {
@@ -834,19 +835,19 @@ async function bindUI() {
     if (r.ok) return;
     if (r.suggest_ref) {
       // 参考音频不合格时后端会挑好一条同角色的，这里给个一键换上的口子
-      modal("合成", esc(r.msg), "换成这条再试", async () => {
+      modal(t("合成"), esc(r.msg), t("换成这条再试"), async () => {
         $("refSel").value = r.suggest_ref;
         await $("refSel").onchange();
-      }, "先算了", null);
+      }, t("先算了"), null);
       return;
     }
-    modal("合成", esc(r.msg));
+    modal(t("合成"), esc(r.msg));
   };
 
   $("btnPlay").onclick = () => play(S.lastWav);
   $("btnSaveAs").onclick = async () => {
     const r = await api().save_as();
-    if (!r.ok && r.msg !== "取消") modal("另存为", esc(r.msg));
+    if (!r.ok && r.msg !== "取消") modal(t("另存为"), esc(r.msg));
   };
   $("btnOpenOut").onclick = () => api().open_output();
 
@@ -861,22 +862,23 @@ async function bindUI() {
       const mark = ok ? "✓" : must ? "✕" : "–";
       return '<div class="check-item ' + cls + '">' +
         '<span class="mark">' + mark + "</span>" +
-        "<span>" + esc(name) + '</span><span class="detail">' + esc(detail) + "</span></div>";
+        "<span>" + esc(t(name)) + '</span><span class="detail">' + esc(t(detail)) + "</span></div>";
     }).join("") + "</div>";
-    modal("自检", html);
+    modal(t("自检"), html);
   };
 
   $("btnExport").onclick = async () => {
     const r = await api().export_config();
-    modal("导出配置", "<div class='empty'>把下面这段复制走，换机器时用「导入配置」贴回来。</div>" +
+    modal(t("导出配置"), "<div class='empty'>" +
+      t("把下面这段复制走，换机器时用「导入配置」贴回来。") + "</div>" +
       "<textarea class='ta' rows='14' readonly style='margin-top:8px'>" + esc(r.data) + "</textarea>");
   };
 
   $("btnImport").onclick = () => {
-    const html = "<div class='empty'>把之前导出的那段配置贴进来：</div>" +
+    const html = "<div class='empty'>" + t("把之前导出的那段配置贴进来：") + "</div>" +
       "<textarea class='ta' rows='12' id='impBox' style='margin-top:8px'></textarea>";
-    modal("导入配置", html);
-    $("modalOk").textContent = "导入";
+    modal(t("导入配置"), html);
+    $("modalOk").textContent = t("导入");
     $("modalOk").onclick = async () => {
       const text = $("impBox").value;
       const r = await api().import_config(text);
@@ -890,7 +892,7 @@ async function bindUI() {
       fillControls();
       fillModels(S.models);
       $("modalMask").classList.remove("on");
-      $("modalOk").textContent = "知道了";
+      $("modalOk").textContent = t("知道了");
       $("modalOk").onclick = () => $("modalMask").classList.remove("on");
     };
   };
@@ -914,35 +916,35 @@ async function bindUI() {
   $("selDevice").onchange = async () => {
     const r = await api().set_device($("selDevice").value);
     $("devHint").textContent = r.msg || "";
-    if (!r.ok) modal("切换设备", esc(r.msg));
+    if (!r.ok) modal(t("切换设备"), esc(r.msg));
   };
 
   $("btnBatchEdit").onclick = async () => {
     const st = await api().get_state();
     const rows = (st.batch_lines || []).map((r) => r[0] + "|" + r[1]).join("\n");
-    const html = "<div class='empty'>每行一条：文件名|台词。留空则不生成该条。</div>" +
+    const html = "<div class='empty'>" + t("每行一条：文件名|台词。留空则不生成该条。") + "</div>" +
       "<textarea class='ta' rows='12' id='batchBox' style='margin-top:8px'>" + esc(rows) + "</textarea>";
-    modal("编辑批量台词", html);
-    $("modalOk").textContent = "保存";
+    modal(t("编辑批量台词"), html);
+    $("modalOk").textContent = t("保存");
     $("modalOk").onclick = async () => {
       const list = [];
       for (const line of $("batchBox").value.split("\n")) {
-        const t = line.trim();
-        if (!t || !t.includes("|")) continue;
-        const i = t.indexOf("|");
-        list.push([t.slice(0, i).trim(), t.slice(i + 1).trim()]);
+        const s = line.trim();              // 别用 t 当变量名，那是翻译函数
+        if (!s || !s.includes("|")) continue;
+        const i = s.indexOf("|");
+        list.push([s.slice(0, i).trim(), s.slice(i + 1).trim()]);
       }
       await api().update_cfg({ batch_lines: list });
       addLog("[批量] 台词已保存，共 " + list.length + " 条");
       $("modalMask").classList.remove("on");
-      $("modalOk").textContent = "知道了";
+      $("modalOk").textContent = t("知道了");
       $("modalOk").onclick = () => $("modalMask").classList.remove("on");
     };
   };
 
   $("btnBatchRun").onclick = async () => {
     const r = await api().batch_run();
-    if (r && !r.ok) modal("批量替换", esc(r.msg || "没开始"));
+    if (r && !r.ok) modal(t("批量替换"), esc(r.msg || t("没开始")));
   };
 
   $("chkFx").onchange = () => {
@@ -984,8 +986,8 @@ async function init() {
       const dev = await api().device_state();
       $("selDevice").value = DEVICES.includes(dev.label) ? dev.label : DEVICES[0];
       $("devHint").textContent = dev.gpu_ok
-        ? (dev.gpu_name || "已识别独显")
-        : "无独显，只能 CPU";
+        ? (dev.gpu_name || t("已识别独显"))
+        : t("无独显，只能 CPU");
     } catch (e) { /* 忽略 */ }
   };
   // GPU 探测要跑一次 nvidia-smi，头一秒问到的永远是没独显

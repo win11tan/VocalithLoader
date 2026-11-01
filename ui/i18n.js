@@ -215,6 +215,46 @@ const I18N = {
     "参考：未绑定（换模型不会自动换参考）":
       "Reference: unbound (switching models won't swap it)",
     "(空)": "(empty)",
+
+    // 自检项名称与说明
+    "GPT-SoVITS 目录": "GPT-SoVITS folder",
+    "requests 模块": "requests module",
+    "输出目录": "Output folder",
+    "日志目录": "Log folder",
+    "GPT 权重": "GPT weights",
+    "SoVITS 权重": "SoVITS weights",
+    "参考音频": "Reference audio",
+    "Python 版本": "Python version",
+    "运行推理子进程用": "runs the inference subprocess",
+    "HTTP 请求": "HTTP requests",
+    "空闲": "free",
+    "被占用": "in use",
+    "未设置": "not set",
+    "打包运行，不适用": "bundled build — not applicable",
+    "导出 mp3 用，缺了不影响合成": "mp3 export only; synthesis works without it",
+
+    // 弹窗与提示
+    "换成这条再试": "Use this one instead",
+    "先算了": "Never mind",
+    "套用": "Apply",
+    "还没有绑定过组合。": "No saved pairs yet.",
+    "在左边选好模型和参考音频，点「绑定到当前模型」，这里就会出现一条。":
+      "Pick a model and a reference clip on the left, then click Bind to model — it will appear here.",
+    "换机器或换目录时，绑定的文件找不到会自动隐藏，不会留一条点不动的废记录。":
+      "On another machine or after moving folders, entries whose files are gone are hidden automatically.",
+    "把下面这段复制走，换机器时用「导入配置」贴回来。":
+      "Copy the text below; paste it back through Import config on the other machine.",
+    "把之前导出的那段配置贴进来：": "Paste the config you exported earlier:",
+    "每行一条：文件名|台词。留空则不生成该条。":
+      "One per line: filename|line. Empty lines are skipped.",
+    "通用音频（没有专属样本时，任意干净人声都能顶替）":
+      "Generic clips (any clean voice works when the model has no samples)",
+    "端口 {port} 上已经有一个 GPT-SoVITS 服务{pid}，它不是这个界面启动的。":
+      "Port {port} already runs a GPT-SoVITS service{pid}, and it was not started by this window.",
+    "共用它照样能合成，但加载模型和合成的进度都读不到，进度条只能按字数估算。":
+      "Sharing it still synthesizes, but progress cannot be read — the bar falls back to a character estimate.",
+    "接管会先把这个进程关掉，再用这里的运行环境重新启动一份，进度就准了，代价是模型要重新加载一次。":
+      "Taking over closes that process and restarts one from here: progress becomes accurate, at the cost of reloading the model.",
   },
 };
 
