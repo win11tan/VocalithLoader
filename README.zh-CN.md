@@ -10,6 +10,8 @@ Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没
 
 [English](README.md) · **简体中文**
 
+![VocalithLoader 界面：左侧选模型与参考音频，右侧写台词合成](docs/screenshots/interface.jpg)
+
 ---
 
 ## 安装

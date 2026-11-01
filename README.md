@@ -12,6 +12,8 @@ the program talks to the network. Copy the folder to another machine and it stil
 
 **English** · [简体中文](README.zh-CN.md)
 
+![VocalithLoader — pick a model and reference clip on the left, write lines on the right](docs/screenshots/interface.jpg)
+
 ---
 
 ## Install
