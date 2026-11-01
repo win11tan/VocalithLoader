@@ -20,6 +20,19 @@ the program talks to the network. Copy the folder to another machine and it stil
 
 ---
 
+## Download
+
+**[Get the Windows build](https://github.com/win11tan/VocalithLoader/releases/latest)** —
+a 34 MB zip. Unzip it anywhere and double-click `VocalithLoader.exe`. No Python, no
+dependencies, nothing written to the registry; delete the folder to uninstall.
+
+Windows SmartScreen will probably warn you on first launch: the executable is unsigned,
+and a code-signing certificate costs money. Click **More info → Run anyway**. If you'd
+rather not trust a prebuilt binary, run it from source instead — next section.
+
+Either way you still need GPT-SoVITS and your own weights. See
+[What you need first](#what-you-need-first).
+
 ## Install
 
 Requires Python 3.9+ and the WebView2 runtime (bundled with Windows 10 and 11; grab it

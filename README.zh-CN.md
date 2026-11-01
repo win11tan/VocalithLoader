@@ -17,6 +17,17 @@ Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没
 
 ---
 
+## 下载
+
+**[直接下 Windows 版](https://github.com/win11tan/VocalithLoader/releases/latest)**，
+34 MB 的 zip。解压到任意位置，双击 `VocalithLoader.exe` 就能开。不用装 Python，不用
+装依赖，不写注册表；不想要了删掉文件夹就行。
+
+第一次打开大概率会被 Windows 拦一下，因为这个 exe 没有代码签名，而签名证书是要花钱的。
+点「更多信息」→「仍要运行」。不想信任现成的二进制，就走下面的源码方式。
+
+不管走哪条路，都还是需要 GPT-SoVITS 本体和你自己的权重，见[需要先准备什么](#需要先准备什么)。
+
 ## 安装
 
 需要 Python 3.9 以上，以及 WebView2 运行时（Win10、Win11 一般自带，没有就去微软官网下。
