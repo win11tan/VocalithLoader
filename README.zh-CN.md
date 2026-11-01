@@ -18,7 +18,7 @@ Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没
 少了这一步程序开不起来，报的是 pythonnet 那边的错）。
 
 ```bash
-git clone <仓库地址>
+git clone https://github.com/win1tan/VocalithLoader.git
 cd VocalithLoader
 pip install -r requirements.txt
 python app.py

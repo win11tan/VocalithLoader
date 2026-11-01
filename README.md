@@ -21,7 +21,7 @@ from Microsoft if missing — without it the app refuses to start and the error 
 from pythonnet).
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/win1tan/VocalithLoader.git
 cd VocalithLoader
 pip install -r requirements.txt
 python app.py
