@@ -1,5 +1,6 @@
 # 界面是 pywebview 起的，Windows 上它自己会带上 pythonnet 和 WebView2 的绑定
-pywebview>=5.0
+# 6.x 是开发和打包时实际验证过的版本；7.x 还没测过，先卡住上界免得装到不兼容的
+pywebview>=5.0,<7
 
 # 跟 GPT-SoVITS 的 HTTP 接口打交道
 requests>=2.31.0

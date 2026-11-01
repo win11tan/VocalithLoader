@@ -10,6 +10,10 @@ only the layer that makes it comfortable to use.
 Windows desktop app. Python + pywebview, the UI is plain local HTML, and nothing in
 the program talks to the network. Copy the folder to another machine and it still works.
 
+> **What this repository does not contain:** no model weights, no voice data, no
+> training set. VocalithLoader is only the interface — it needs an existing
+> GPT-SoVITS installation with your own weights before it can synthesize anything.
+
 **English** · [简体中文](README.zh-CN.md)
 
 ![VocalithLoader — pick a model and reference clip on the left, write lines on the right](docs/screenshots/interface.jpg)

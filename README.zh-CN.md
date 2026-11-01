@@ -8,6 +8,9 @@
 Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没有任何联网组件。
 换台机器整个目录拷过去就能用。
 
+> **这个仓库里没有**：模型权重、语音素材、训练数据，一样都没有。
+> VocalithLoader 只是界面，要配合你本地已经装好的 GPT-SoVITS 和自备的权重才能用。
+
 [English](README.md) · **简体中文**
 
 ![VocalithLoader 界面：左侧选模型与参考音频，右侧写台词合成](docs/screenshots/interface.jpg)

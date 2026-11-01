@@ -244,42 +244,6 @@ def ui_path():
     return os.path.join(RES, "ui", "index.html")
 
 
-def inherit_previous_config(eng):
-    """第一次跑的时候，隔壁要是还留着上一版，把参考音频这些带过来。
-
-    新版本生成的配置是空的，用户一进来看见「参考音频」是空的，点合成会直接
-    报不存在。这些路径本来就是现成的，没必要让人再翻一遍硬盘。
-    """
-    base = os.path.dirname(HERE)
-    cands = [
-        os.path.join(base, "HelenaVoiceStudio", "config.json"),
-        os.path.join(base, "HelenaVoiceStudio_v1", "config.json"),
-    ]
-    keys = ("ref_audio", "prompt_text", "prompt_lang", "text", "text_lang",
-            "gpt_path", "sovits_path", "top_k", "top_p", "temperature",
-            "repetition_penalty", "seed", "random_seed")
-    for path in cands:
-        if not os.path.isfile(path):
-            continue
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                old = json.load(f)
-        except Exception:
-            continue
-        moved = 0
-        for k in keys:
-            cur = eng.cfg.get(k)
-            new = old.get(k)
-            if (cur in (None, "", 0)) and (new not in (None, "")):
-                eng.cfg[k] = new
-                moved += 1
-        if moved:
-            eng.save_config()
-            eng.log("从上一版配置继承了 %d 项（参考音频、模型权重等）" % moved)
-            return True
-    return False
-
-
 def main():
     if webview is None:
         return 1
@@ -331,7 +295,6 @@ def main():
                 })
         else:
             eng.refresh_models()
-        inherit_previous_config(eng)
         bridge.emit("cfg", eng.snapshot()["cfg"])
         bridge.emit("models", eng.models)
         eng.log("VocalithLoader 已就绪")
