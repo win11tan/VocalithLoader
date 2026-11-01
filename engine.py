@@ -49,6 +49,16 @@ class Engine:
     def __init__(self, emit=None):
         self.emit = emit or (lambda kind, data: None)
         self.cfg = self.load_config()
+
+        # 第一次运行时这两个目录都还不存在。把 exe 解压到一个新地方就是这种情况：
+        # 以前只在启动服务时建了日志目录，输出目录一直没人建，于是合成会一路跑到
+        # 最后一步写文件才抛 Errno 2，前面十几秒的推理全白费
+        for _d in (LOG_DIR, OUTPUT_DIR):
+            try:
+                os.makedirs(_d, exist_ok=True)
+            except OSError as e:
+                self.log("建目录失败 %s: %s" % (_d, e))
+
         self.proc = None
         self.ready = False
         self.busy = False
@@ -669,6 +679,8 @@ class Engine:
                         detail = (r.text or "")[:200]
                     raise RuntimeError("服务端拒绝（%d）：%s" % (r.status_code, detail or "没给原因"))
                 stem = time.strftime("%Y%m%d_%H%M%S") + "_" + core.safe_filename(text)
+                # 万一运行过程中目录被删了，别等到写完才发现
+                os.makedirs(OUTPUT_DIR, exist_ok=True)
                 path = core.unique_path(OUTPUT_DIR, stem)
                 with open(path, "wb") as f:
                     f.write(r.content)
