@@ -897,25 +897,62 @@ class Engine:
             pass
 
     # ── 自检 / 配置导入导出 ─────────────────────────────────
+    def _dir_writable(self, path):
+        """真的往里写个文件试试。Windows 上 os.access 对权限的判断不可靠。"""
+        try:
+            os.makedirs(path, exist_ok=True)
+            probe = os.path.join(path, ".vocalith_write_test")
+            with open(probe, "wb") as f:
+                f.write(b"1")
+            os.remove(probe)
+            return True
+        except OSError:
+            return False
+
     def self_check(self):
+        """返回 [名称, 是否正常, 说明, 是否必需]。
+
+        第四项是必需标记。出问题要拦住人的才标 True；像 ffmpeg 缺了只是不能
+        导 mp3，不该让第一次打开的人以为整个程序坏了。
+        """
         gsv = (self.cfg.get("gsv_dir") or "").strip()
+        out_ok = self._dir_writable(OUTPUT_DIR)
+        log_ok = self._dir_writable(LOG_DIR)
+
+        # 只有跑源码才关心解释器版本，打成 exe 之后用的是自带的那份
+        frozen = getattr(sys, "frozen", False)
+        py_ok = bool(frozen) or sys.version_info >= (3, 9)
+
+        req_err = getattr(core, "REQUESTS_IMPORT_ERROR", None)
+
         items = [
-            ("GPT-SoVITS 目录", core.is_gsv_dir(gsv), gsv or "未设置"),
+            ("GPT-SoVITS 目录", core.is_gsv_dir(gsv), gsv or "未设置", True),
             ("runtime\\python.exe",
              os.path.isfile(os.path.join(gsv, "runtime", "python.exe")),
-             "运行推理子进程用"),
-            ("requests 模块", requests is not None, "HTTP 请求"),
+             "运行推理子进程用", True),
+            ("requests 模块", requests is not None,
+             "HTTP 请求" if requests is not None else ("加载失败：%s" % (req_err or "原因未知")),
+             True),
+            ("输出目录", out_ok, OUTPUT_DIR, True),
+            ("日志目录", log_ok, LOG_DIR, True),
             ("端口 %s" % self.cfg.get("port"),
              not self.port_open() or self.probe_service(),
-             "空闲" if not self.port_open() else "被占用"),
-            ("GPT 权重", bool(self.cfg.get("gpt_path")), self.cfg.get("gpt_path") or "未设置"),
-            ("SoVITS 权重", bool(self.cfg.get("sovits_path")), self.cfg.get("sovits_path") or "未设置"),
+             "空闲" if not self.port_open() else "被占用", True),
+            ("GPT 权重", bool(self.cfg.get("gpt_path")), self.cfg.get("gpt_path") or "未设置", True),
+            ("SoVITS 权重", bool(self.cfg.get("sovits_path")), self.cfg.get("sovits_path") or "未设置", True),
             ("参考音频", os.path.isfile(self.cfg.get("ref_audio") or ""),
-             self.cfg.get("ref_audio") or "未设置"),
+             self.cfg.get("ref_audio") or "未设置", True),
+            ("Python 版本", py_ok,
+             "打包运行，不适用" if frozen else "%d.%d" % sys.version_info[:2], True),
             ("ffmpeg", os.path.isfile(os.path.join(gsv, "runtime", "ffmpeg.exe")),
-             "导出 mp3 用，可选"),
+             "导出 mp3 用，缺了不影响合成", False),
         ]
-        self.log("自检完成")
+
+        bad = [n for n, ok, _, req in items if req and not ok]
+        if bad:
+            self.log("自检：%d 项需要处理（%s）" % (len(bad), "、".join(bad)))
+        else:
+            self.log("自检完成，全部通过")
         return items
 
     def export_config(self):

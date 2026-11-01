@@ -304,6 +304,21 @@ def main():
             eng.refresh_models()
         bridge.emit("cfg", eng.snapshot()["cfg"])
         bridge.emit("models", eng.models)
+
+        # 启动时就把「还能不能正常用」查一遍。以前这些毛病要拖到合成走到最后
+        # 一步才暴露——输出目录不存在、requests 没加载都属于这类——报错位置
+        # 离原因太远，用户看到的是一句看不懂的异常，而不是该去修什么。
+        items = eng.self_check()
+        blocking = [it[0] for it in items if len(it) > 3 and it[3] and not it[1]]
+        # 目录都没指对的时候上面已经弹过提示了，这里不再叠一个
+        if blocking and core.is_gsv_dir(eng.cfg.get("gsv_dir", "")):
+            bridge.emit("hint", {
+                "title": "有 %d 项要先处理" % len(blocking),
+                "body": "自检发现的，不处理的话合成会失败：<br><br>"
+                        + "<br>".join("· " + n for n in blocking)
+                        + "<br><br>点顶上的「自检」看完整清单。",
+            })
+
         eng.log("VocalithLoader 已就绪")
 
     window.events.loaded += lambda: threading.Thread(target=startup, daemon=True).start()

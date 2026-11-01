@@ -302,6 +302,8 @@ html, body {
 .check-item .mark { width: 16px; }
 .check-item.ok .mark { color: var(--accent); }
 .check-item.bad .mark { color: var(--err); }
+.check-item.opt .mark { color: #7f93ad; }
+.check-item.opt { opacity: .75; }
 .check-item .detail { color: #7f93ad; font-size: 12px; }
 
 /* 预设 */

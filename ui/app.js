@@ -817,10 +817,15 @@ async function bindUI() {
 
   $("btnCheck").onclick = async () => {
     const items = await api().self_check();
+    // 第四项是「必需」标记：缺了会让人没法用的标红，可选项缺了只灰一下。
+    // 不然第一次打开的人看到一屏叉，会以为整个程序坏了。
     const html = '<div class="check-list">' + items.map((it) => {
-      const [name, ok, detail] = it;
-      return '<div class="check-item ' + (ok ? "ok" : "bad") + '">' +
-        '<span class="mark">' + (ok ? "✓" : "✕") + "</span>" +
+      const [name, ok, detail, required] = it;
+      const must = required !== false;
+      const cls = ok ? "ok" : must ? "bad" : "opt";
+      const mark = ok ? "✓" : must ? "✕" : "–";
+      return '<div class="check-item ' + cls + '">' +
+        '<span class="mark">' + mark + "</span>" +
         "<span>" + esc(name) + '</span><span class="detail">' + esc(detail) + "</span></div>";
     }).join("") + "</div>";
     modal("自检", html);
