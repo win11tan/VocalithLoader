@@ -42,6 +42,10 @@ LOAD_NAMES = core.LOAD_NAMES
 
 
 class Engine:
+    # pywebview 启动时会遍历 js_api 上的每个属性，遇到对象就往下递归去找可调用函数。
+    # 这个实例是内部状态，不该被翻，标记一下让它停在门口
+    _serializable = False
+
     def __init__(self, emit=None):
         self.emit = emit or (lambda kind, data: None)
         self.cfg = self.load_config()

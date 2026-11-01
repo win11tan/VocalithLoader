@@ -36,6 +36,10 @@ class Bridge:
     改成轮询之后跨线程问题从根上没了，代价是最多 120 毫秒的延迟。
     """
 
+    # 同上：pywebview 会遍历 js_api 上的每个属性递归找可调用函数，
+    # 这个对象用不着暴露给前端，标记一下让它别往里钻
+    _serializable = False
+
     def __init__(self):
         self.queue = []
         self._lock = threading.Lock()
@@ -57,7 +61,10 @@ class Api:
     def __init__(self, engine, bridge):
         self.engine = engine
         self.bridge = bridge
-        self.window = None
+        # 下划线开头：pywebview 生成可调用函数清单时会直接跳过这种属性。
+        # 不跳的话它会顺着 window.native 一路递归进 WinForms 的 COM 对象树，
+        # 最后刷出一屏 InvalidCastException 和一个 RecursionError
+        self._window = None
 
     # ── 状态 ────────────────────────────────────────────────
     def poll(self):
@@ -159,7 +166,7 @@ class Api:
     def pick_bg_folder(self):
         try:
             import webview as wv
-            picked = self.window.create_file_dialog(wv.FOLDER_DIALOG, allow_multiple=False)
+            picked = self._window.create_file_dialog(wv.FOLDER_DIALOG, allow_multiple=False)
         except Exception:
             return {"ok": False, "msg": "对话框打不开"}
         if not picked:
@@ -171,7 +178,7 @@ class Api:
     def pick_folder(self, kind="gsv"):
         try:
             import webview as wv
-            picked = self.window.create_file_dialog(wv.FOLDER_DIALOG, allow_multiple=False)
+            picked = self._window.create_file_dialog(wv.FOLDER_DIALOG, allow_multiple=False)
         except Exception:
             return {"ok": False, "msg": "对话框打不开"}
         if not picked:
@@ -188,7 +195,7 @@ class Api:
     def pick_file(self, kind="ref"):
         try:
             import webview as wv
-            picked = self.window.create_file_dialog(
+            picked = self._window.create_file_dialog(
                 wv.OPEN_DIALOG, allow_multiple=False,
                 file_types=("音频 (*.wav;*.mp3;*.flac)", "所有文件 (*.*)"))
         except Exception:
@@ -207,7 +214,7 @@ class Api:
             return {"ok": False, "msg": "还没有生成过音频"}
         try:
             import webview as wv
-            picked = self.window.create_file_dialog(
+            picked = self._window.create_file_dialog(
                 wv.SAVE_DIALOG, save_filename=os.path.basename(self.engine.last_wav),
                 file_types=("WAV (*.wav)", "MP3 (*.mp3)"))
         except Exception:
@@ -271,7 +278,7 @@ def main():
         background_color="#0a0e13",
     )
     bridge.window = window
-    api.window = window
+    api._window = window
 
     def startup():
         eng.start_monitor()
