@@ -15,12 +15,12 @@ VSVersionInfo(
         '040904B0',
         [StringStruct('CompanyName', 'VocalithLoader'),
          StringStruct('FileDescription', 'GUI for GPT-SoVITS voice synthesis'),
-         StringStruct('FileVersion', '1.0.0.0'),
+         StringStruct('FileVersion', '1.0.1.0'),
          StringStruct('InternalName', 'VocalithLoader'),
          StringStruct('LegalCopyright', 'MIT License'),
          StringStruct('OriginalFilename', 'VocalithLoader.exe'),
          StringStruct('ProductName', 'VocalithLoader'),
-         StringStruct('ProductVersion', '1.0.0.0')])
+         StringStruct('ProductVersion', '1.0.1.0')])
     ]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]
