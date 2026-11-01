@@ -128,6 +128,14 @@ class Engine:
         return self.snapshot()
 
     # ── 事件 ────────────────────────────────────────────────
+    def _need_requests(self):
+        """requests 是可选导入，缺了要在调接口前就说清楚，别拖到合成最后一步。"""
+        if requests is None:
+            raise RuntimeError(
+                "requests 没能加载，合成用不了（%s）"
+                % (getattr(core, "REQUESTS_IMPORT_ERROR", None) or "打包时缺依赖")
+            )
+
     def log(self, msg):
         self.emit("log", {"line": "[%s] %s" % (time.strftime("%H:%M:%S"), msg)})
 
@@ -667,6 +675,7 @@ class Engine:
 
         def work():
             try:
+                self._need_requests()
                 r = requests.post(self.api_base() + "/tts", json=payload, timeout=600)
                 if r.status_code != 200:
                     # 服务端把真正的原因写在 body 里（比如"参考音频在3~10秒范围外"），
@@ -973,6 +982,7 @@ class Engine:
                         "repetition_penalty": float(cfg["repetition_penalty"]),
                         "seed": int(cfg["seed"]), "media_type": "wav", "streaming_mode": False,
                     }
+                    self._need_requests()
                     r = requests.post(self.api_base() + "/tts", json=payload, timeout=600)
                     r.raise_for_status()
                     safe = core.safe_filename(name, 60)

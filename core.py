@@ -29,8 +29,13 @@ from collections import deque
 
 try:
     import requests
-except Exception:  # pragma: no cover
+    REQUESTS_IMPORT_ERROR = None
+except Exception as _e:  # pragma: no cover
+    # 以前这里静默降级成 None，结果要等到合成跑到最后一步才报
+    # "'NoneType' object has no attribute 'post'"，完全看不出真正原因。
+    # 把原始异常留下来，用的时候一起报出去
     requests = None
+    REQUESTS_IMPORT_ERROR = _e
 
 try:
     import winsound
