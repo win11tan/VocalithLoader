@@ -27,6 +27,17 @@
 
 合成所需的权重与参考音频由使用者自行准备，其来源与授权由使用者自行负责。
 
+本项目作者另外发布了三个角色的语音模型权重，**不在本仓库内**：
+
+    https://www.modelscope.cn/models/HelenaCL50/helena-gpt-sovits
+    https://www.modelscope.cn/models/HelenaCL50/enterprise-gpt-sovits
+    https://www.modelscope.cn/models/HelenaCL50/yukikaze-gpt-sovits
+
+这些权重同样**不在 MIT 许可范围内**。它们采用单独的非商业研究许可（全文见
+各模型页的 LICENSE），仅限个人非商业使用，禁止出售、打包进付费产品或上架应用
+商店。训练素材是从游戏中提取的角色语音，角色声音的权利不属于本项目作者。各
+模型页写明了完整条款，并承诺权利人要求时可删除。
+
 三、你要商用或再分发时
 ----------------------
 如果你的用途超出个人本地运行，请先把上面两类美术素材换成你有权使用的内容：

@@ -9,7 +9,8 @@ Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没
 换台机器整个目录拷过去就能用。
 
 > **这个仓库里没有**：模型权重、语音素材、训练数据，一样都没有。
-> VocalithLoader 只是界面，要配合你本地已经装好的 GPT-SoVITS 和自备的权重才能用。
+> VocalithLoader 只是界面，必须配上 GPT-SoVITS 和权重才能出声——三个角色的权重
+> 单独放在魔搭上，见[语音模型](#语音模型)。
 
 [English](README.md) · **简体中文**
 
@@ -26,7 +27,30 @@ Windows 桌面程序，Python + pywebview 起窗口，界面是本地 HTML，没
 第一次打开大概率会被 Windows 拦一下，因为这个 exe 没有代码签名，而签名证书是要花钱的。
 点「更多信息」→「仍要运行」。不想信任现成的二进制，就走下面的源码方式。
 
-不管走哪条路，都还是需要 GPT-SoVITS 本体和你自己的权重，见[需要先准备什么](#需要先准备什么)。
+不管走哪条路，都还是需要 GPT-SoVITS 本体和权重。权重不在这个仓库里，见下面的
+[语音模型](#语音模型)，以及[需要先准备什么](#需要先准备什么)。
+
+## 语音模型
+
+光有界面出不了声。三个 GPT-SoVITS v2Pro 角色的权重单独放在魔搭上：文件大，授权是
+单独一套，塞进这里也会让 clone 变得很重。
+
+| 角色 | GPT 权重 | SoVITS 权重 | 体积 | 下载 |
+| --- | --- | --- | --- | --- |
+| 海伦娜 Helena | `helena-e12.ckpt` | `helena_e8_s464.pth` | 290 MB | [魔搭](https://www.modelscope.cn/models/HelenaCL50/helena-gpt-sovits) |
+| 企业 Enterprise | `enterprise2-e8.ckpt` | `enterprise2_e8_s472.pth` | 290 MB | [魔搭](https://www.modelscope.cn/models/HelenaCL50/enterprise-gpt-sovits) |
+| 雪风 Yukikaze | `yukikaze-e12.ckpt` | `yukikaze_e4_s196.pth` | 290 MB | [魔搭](https://www.modelscope.cn/models/HelenaCL50/yukikaze-gpt-sovits) |
+
+GPT 文件放进 `GPT_weights_v2Pro\`，SoVITS 文件放进 `SoVITS_weights_v2Pro\`，
+然后在两个下拉里选中就行。它们就是普通的 v2Pro 权重，v2Pro 装好就能直接读。
+
+> **这些是非官方、非商业的爱好者模型。** 训练素材是从游戏《碧蓝航线》里提取的语音。
+> 角色声音和游戏音频的权利属于原方，这里没有获得任何授权。模型页只放训练出来的权重，
+> 不含任何原音频。仅供个人使用：不要卖，不要打包进付费产品，不要上架应用商店。
+> 如果权利人认为某个角色不合适，提个 issue 我会删掉。
+
+代码在这个仓库，权重在那边。那边是外部下载点，不是本仓库的镜像，也不跟着这里同步
+发版——新版程序能读旧权重，但某个模型页可能比程序更新得慢。
 
 ## 安装
 

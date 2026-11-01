@@ -11,8 +11,9 @@ Windows desktop app. Python + pywebview, the UI is plain local HTML, and nothing
 the program talks to the network. Copy the folder to another machine and it still works.
 
 > **What this repository does not contain:** no model weights, no voice data, no
-> training set. VocalithLoader is only the interface — it needs an existing
-> GPT-SoVITS installation with your own weights before it can synthesize anything.
+> training set. VocalithLoader is only the interface. You need a GPT-SoVITS
+> installation plus weights — three characters are published separately, see
+> [Voice models](#voice-models).
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -30,8 +31,39 @@ Windows SmartScreen will probably warn you on first launch: the executable is un
 and a code-signing certificate costs money. Click **More info → Run anyway**. If you'd
 rather not trust a prebuilt binary, run it from source instead — next section.
 
-Either way you still need GPT-SoVITS and your own weights. See
-[What you need first](#what-you-need-first).
+Either way you still need GPT-SoVITS and weights. The weights are not in this
+repository — see [Voice models](#voice-models) below, and
+[What you need first](#what-you-need-first) for the installation side.
+
+## Voice models
+
+The interface alone cannot produce sound. Three GPT-SoVITS v2Pro characters are
+published separately on ModelScope (魔搭): the weights are large, they carry their own
+terms, and keeping them out of this repo keeps a clone small.
+
+| Character | GPT weights | SoVITS weights | Size | Page |
+| --- | --- | --- | --- | --- |
+| Helena · 海伦娜 | `helena-e12.ckpt` | `helena_e8_s464.pth` | 290 MB | [ModelScope](https://www.modelscope.cn/models/HelenaCL50/helena-gpt-sovits) |
+| Enterprise · 企业 | `enterprise2-e8.ckpt` | `enterprise2_e8_s472.pth` | 290 MB | [ModelScope](https://www.modelscope.cn/models/HelenaCL50/enterprise-gpt-sovits) |
+| Yukikaze · 雪风 | `yukikaze-e12.ckpt` | `yukikaze_e4_s196.pth` | 290 MB | [ModelScope](https://www.modelscope.cn/models/HelenaCL50/yukikaze-gpt-sovits) |
+
+Copy the GPT file into `GPT_weights_v2Pro/` and the SoVITS file into
+`SoVITS_weights_v2Pro/` of a GPT-SoVITS v2Pro installation, then select both from the
+dropdowns. They are ordinary v2Pro checkpoints — loading them needs nothing beyond
+what a v2Pro install already has.
+
+> **These are unofficial, non-commercial fan models.** They were trained on voice
+> clips taken from the game *Azur Lane*. Character voices and game audio belong to
+> their respective owners, and nothing here is licensed or endorsed by them. The
+> model repositories hold trained weights only — no original audio. Personal use
+> only: don't sell them, don't bundle them into paid products, don't publish them to
+> app stores. If you hold the rights to a character and want its model removed, open
+> an issue and it will be deleted.
+
+The code lives in this repository; the weights live there. Those pages are external
+downloads, not mirrors of this repo, and they are not released in lockstep with it —
+a newer VocalithLoader will load an older checkpoint, but a given model page may lag
+behind the app.
 
 ## Install
 
