@@ -269,7 +269,9 @@ def compute_spectrum(path, bands=32, hop=0.04, win=1024):
     db = 20.0 * np.log10(out + 1e-6)
     top = float(np.percentile(db, 99.0))
     floor = top - 55.0
-    if top - floor < 1.0:
+    # top 极低说明整段几乎没有信号（静音文件、空录音）。不拦这一条的话，
+    # 归一化会把一条平线拉成满格，界面上显示得像有声音
+    if top - floor < 1.0 or top < -100.0:
         return None, 0.0
     base = np.clip((db - floor) / (top - floor), 0.0, 1.0)
     # 再按频带各自动态范围拉一次：人声的低频和高频天生比中频弱一大截，
