@@ -167,3 +167,16 @@ and delete the images in `bg_builtin/` — the UI falls back to a solid backgrou
 
 This project has no affiliation with the developers or publishers of *Azur Lane*. It is
 unofficial, non-commercial, and free of charge.
+
+## About this project
+
+Built by a high-school student in China who only gets home once a month, so replies to
+issues and pull requests can take a while.
+
+AI assistants were used heavily throughout development. The requirements, debugging, and
+design decisions are mine, but a fair amount of the code was drafted with AI help. I am
+writing this down so you know what to expect: it runs in the setups I have tested, and
+beyond that I cannot make promises.
+
+Bug reports and corrections are welcome. If something breaks on your machine, an issue
+with your Windows version, GPU, and GPT-SoVITS version will help a lot.
