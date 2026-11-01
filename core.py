@@ -17,6 +17,7 @@ import os
 import queue
 import re
 import socket
+import string
 import subprocess
 import sys
 import threading
@@ -515,7 +516,7 @@ def detect_gsv(time_budget=8.0, log=None):
     """在常见位置找 GPT-SoVITS 便携包。
 
     先看几个几乎不花时间的高概率位置（当前目录、下载、桌面），
-    再扫各盘根目录及其下一层，这样 D:\\迅雷下载\\GPT-SoVITS-xxx 这种
+    再扫各盘根目录及其下一层，这样「某个下载目录\\GPT-SoVITS-xxx」这种
     隔着两层的也能找到。全程有时间预算，到点就返回已找到的结果。
     """
     t0 = time.time()
@@ -551,8 +552,10 @@ def detect_gsv(time_budget=8.0, log=None):
         except Exception:
             continue
 
-    # 二、各盘根目录：先看自己，再看下一层
-    for drive in ("C:\\", "D:\\", "E:\\", "F:\\", "G:\\"):
+    # 二、各盘根的根目录：先看自己，再看下一层。
+    # 盘符从 A 到 Z 逐个试，存在的才扫，所以装在哪个盘都能找到，不写死列表。
+    for letter in string.ascii_uppercase:
+        drive = letter + ":\\"
         if not os.path.isdir(drive):
             continue
         try:
@@ -572,7 +575,7 @@ def detect_gsv(time_budget=8.0, log=None):
             if looks_like_gsv_name(name):
                 add(p)
                 continue
-            # 第二层：D:\迅雷下载\GPT-SoVITS-xxx
+            # 第二层：<下载目录>\GPT-SoVITS-xxx
             try:
                 for sub in os.listdir(p):
                     if time.time() - t0 > time_budget:
