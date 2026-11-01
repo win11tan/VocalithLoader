@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>VocalithLoader</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 背景照片轮播：两张叠着交叉淡化，压在加了暗角的最底层 -->
+  <div class="bg">
+    <div class="bg-img" id="bgA"></div>
+    <div class="bg-img" id="bgB"></div>
+    <div class="bg-veil"></div>
+  </div>
+
+  <div class="app">
+    <!-- 顶栏 -->
+    <header class="top">
+      <div class="brand">
+        <span class="logo">VOCALITH LOADER</span>
+        <span class="sub">GPT-SoVITS 权重推理</span>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="btnBg" title="左键选文件夹，右键恢复内置">背景图</button>
+        <button class="btn ghost" id="btnExport">导出配置</button>
+        <button class="btn ghost" id="btnImport">导入配置</button>
+        <button class="btn ghost" id="btnCheck">自检</button>
+        <span class="status" id="status"><i class="dot"></i>服务未启动</span>
+      </div>
+    </header>
+
+    <!-- 目录栏 -->
+    <section class="toolbar">
+      <label class="lbl">GPT-SoVITS 目录</label>
+      <input class="inp grow" id="gsvDir" placeholder="选择 GPT-SoVITS 便携包目录">
+      <button class="btn ghost" id="btnBrowse">浏览</button>
+      <button class="btn ghost" id="btnAuto">自动探测</button>
+      <button class="btn good" id="btnStart">启动服务</button>
+      <button class="btn ghost" id="btnStop" disabled>停止</button>
+    </section>
+
+    <!-- 主区：左模型 / 右合成 -->
+    <main class="main">
+      <div class="col left">
+        <section class="card" id="cardModel">
+          <h2>模型权重 <span class="hint">扫描 GPT_weights* / SoVITS_weights*</span></h2>
+          <label class="mini">GPT (.ckpt)</label>
+          <select class="sel" id="selGpt"></select>
+          <label class="mini">SoVITS (.pth)</label>
+          <select class="sel" id="selSovits"></select>
+          <div class="row">
+            <button class="btn" id="btnRefresh">刷新列表</button>
+            <button class="btn accent" id="btnApplyModel">应用模型</button>
+            <button class="btn" id="btnPresets">已存组合…</button>
+          </div>
+          <div class="note" id="modelNow">当前：未应用</div>
+        </section>
+
+        <section class="card" id="cardRef">
+          <h2>参考音频 <span class="hint">音色由权重定，语气由它定</span></h2>
+          <div class="row nowrap">
+            <select class="sel grow" id="refSel"></select>
+            <button class="btn" id="btnPreviewRef">试听</button>
+            <button class="btn" id="btnPickRef">浏览…</button>
+          </div>
+          <label class="mini">参考文本（须与音频逐字一致）</label>
+          <textarea class="ta" id="promptText" rows="3"></textarea>
+          <div class="row">
+            <label class="mini inline">参考语言</label>
+            <select class="sel tight" id="selPLang"></select>
+            <button class="btn" id="btnApplyRef">应用参考</button>
+            <button class="btn" id="btnBindRef">绑定到当前模型</button>
+          </div>
+          <div class="note" id="refState">参考：未绑定（换模型不会自动换参考）</div>
+        </section>
+
+        <section class="card growable" id="cardMon">
+          <h2>系统资源</h2>
+          <div class="row">
+            <label class="mini inline">推理设备</label>
+            <select class="sel tight" id="selDevice"></select>
+            <span class="note inline" id="devHint"></span>
+          </div>
+          <div class="mon-line"><span class="mon-k">CPU</span><span id="cpuLine">—</span></div>
+          <div class="mon-line"><span class="mon-k">GPU</span><span id="gpuLine">—</span></div>
+          <canvas class="mon-canvas" id="monCanvas"></canvas>
+        </section>
+      </div>
+
+      <div class="col right">
+        <section class="card growable" id="cardSynth">
+          <h2>合成</h2>
+          <label class="mini">要念的文本</label>
+          <textarea class="ta big" id="mainText" rows="6"></textarea>
+
+          <div class="row">
+            <label class="mini inline">文本语言</label>
+            <select class="sel tight" id="selTLang"></select>
+          </div>
+
+          <div class="params">
+            <h3>推理参数</h3>
+            <div class="pgrid">
+              <label>top_k</label><input class="inp tiny" id="pTopK" type="number" step="1">
+              <label>top_p</label><input class="inp tiny" id="pTopP" type="number" step="0.05">
+              <label>temperature</label><input class="inp tiny" id="pTemp" type="number" step="0.05">
+              <label>repetition_penalty</label><input class="inp tiny" id="pRep" type="number" step="0.05">
+              <label>seed</label><input class="inp tiny" id="pSeed" type="number" step="1">
+              <label class="chk"><input type="checkbox" id="pRand"> 每次随机 seed</label>
+              <label>分句</label><select class="sel tight" id="selSplit"></select>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn accent" id="btnSynth">合成</button>
+            <button class="btn" id="btnPlay">试听</button>
+            <button class="btn" id="btnSaveAs">另存为…</button>
+            <button class="btn" id="btnOpenOut">打开输出目录</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnBatchEdit">编辑台词</button>
+            <button class="btn" id="btnBatchRun">批量替换素材</button>
+          </div>
+
+          <canvas class="wave" id="waveCanvas"></canvas>
+          <div class="prog"><div class="prog-bar" id="progBar"></div></div>
+          <div class="prog-text" id="progText"></div>
+          <canvas class="spec" id="specCanvas"></canvas>
+          <div class="note" id="info">—</div>
+        </section>
+      </div>
+    </main>
+
+    <!-- 底部：历史 + 日志 -->
+    <footer class="bottom">
+      <section class="card hist">
+        <h2>生成历史 <span class="hint">双击试听，右键定位</span></h2>
+        <div class="table-wrap">
+          <table class="hist-table">
+            <thead><tr><th style="width:150px">时间</th><th>文本</th><th style="width:74px">时长</th><th style="width:200px">文件</th></tr></thead>
+            <tbody id="histBody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card logcard">
+        <h2>日志 <label class="chk right"><input type="checkbox" id="chkFx" checked> 特效</label></h2>
+        <div class="log" id="logBox"></div>
+      </section>
+    </footer>
+  </div>
+
+  <!-- 通用弹层 -->
+  <div class="modal-mask" id="modalMask">
+    <div class="modal" id="modalBox">
+      <h3 id="modalTitle">提示</h3>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot">
+        <button class="btn" id="modalCancel" style="display:none">取消</button>
+        <button class="btn accent" id="modalOk">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="player"></audio>
+  <script src="app.js"></script>
+
+</body>
+</html>

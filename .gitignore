@@ -1,0 +1,20 @@
+# 运行时生成的，跟机器绑定，不该进仓库
+config.json
+logs/
+output/
+__pycache__/
+*.pyc
+
+# 打包产物（VocalithLoader.spec 是构建配置，要留着）
+build/
+dist/
+*.exe
+
+# 调试时抓的对比截图，体积大，按需自己留
+fx_shots/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -1,0 +1,11 @@
+# 界面是 pywebview 起的，Windows 上它自己会带上 pythonnet 和 WebView2 的绑定
+pywebview>=5.0
+
+# 跟 GPT-SoVITS 的 HTTP 接口打交道
+requests>=2.31.0
+
+# 读进程和端口用，没有也能跑，降级成系统命令
+psutil>=5.9.0
+
+# 只有算频谱那一步用，缺了频谱条会空着，别的不受影响
+numpy>=1.24.0

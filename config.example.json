@@ -1,0 +1,49 @@
+{
+  "gsv_dir": "",
+  "host": "127.0.0.1",
+  "port": 9880,
+  "gpt_path": "",
+  "sovits_path": "",
+  "ref_audio": "",
+  "prompt_text": "",
+  "prompt_lang": "ja",
+  "text_lang": "ja",
+  "text": "",
+  "top_k": 15,
+  "top_p": 1.0,
+  "temperature": 1.0,
+  "repetition_penalty": 1.35,
+  "text_split_method": "cut0",
+  "seed": 42,
+  "random_seed": false,
+  "assets_dir": "",
+  "profiles": {},
+  "batch_lines": [
+    [
+      "line-1",
+      ""
+    ],
+    [
+      "line-2",
+      ""
+    ],
+    [
+      "line-3",
+      ""
+    ],
+    [
+      "line-4",
+      ""
+    ],
+    [
+      "line-5",
+      ""
+    ],
+    [
+      "line-6",
+      ""
+    ]
+  ],
+  "fx": true,
+  "device": "auto"
+}
