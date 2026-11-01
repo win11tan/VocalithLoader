@@ -89,8 +89,12 @@ class Engine:
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 cfg.update(json.load(f))
-        except Exception:
-            pass
+        except FileNotFoundError:
+            pass  # 第一次跑还没有配置文件，属于正常情况
+        except Exception as e:
+            # 文件在，但读不出来（被改坏、编码不对、没权限）。以前这里静默退回
+            # 默认值，用户会发现设置全没了却不知道为什么，所以至少留一句
+            self.log("配置文件读不出来，已退回默认设置：%s" % e)
         if not cfg.get("batch_lines"):
             cfg["batch_lines"] = [list(x) for x in core.DEFAULT_BATCH_LINES]
         return cfg
