@@ -43,7 +43,7 @@ except Exception:  # pragma: no cover
     winsound = None
 
 APP_TITLE = "VocalithLoader"
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 
 # 服务端每合完一句就会打这行，用来数真实进度
 PROGRESS_MARK = "前端处理后的文本"
