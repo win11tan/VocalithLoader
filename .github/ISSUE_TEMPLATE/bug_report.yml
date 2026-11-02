@@ -24,6 +24,17 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: version
+    attributes:
+      label: 用的哪个版本
+      description: |
+        对着 `VocalithLoader.exe` 右键 →「属性」→「详细信息」，里面有一行文件版本，
+        照着抄过来（例如 `1.0.3`）。实在找不到就写「不知道」。
+      placeholder: "1.0.3"
+    validations:
+      required: true
+
   - type: textarea
     id: what
     attributes:

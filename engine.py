@@ -956,9 +956,12 @@ class Engine:
             (self.tr("端口 %s" % self.cfg.get("port")),
              not self.port_open() or self.probe_service(),
              self.tr("空闲") if not self.port_open() else self.tr("被占用"), True),
-            (self.tr("GPT 权重"), bool(self.cfg.get("gpt_path")),
+            # 这两个以前只判断配置里有没有填字符串：路径填了但文件被挪走，
+            # 自检照样打勾，用户要到合成最后一步才看见报错。和下面「参考音频」
+            # 保持一致，真去看文件在不在。
+            (self.tr("GPT 权重"), os.path.isfile(self.cfg.get("gpt_path") or ""),
              self.cfg.get("gpt_path") or self.tr("未设置"), True),
-            (self.tr("SoVITS 权重"), bool(self.cfg.get("sovits_path")),
+            (self.tr("SoVITS 权重"), os.path.isfile(self.cfg.get("sovits_path") or ""),
              self.cfg.get("sovits_path") or self.tr("未设置"), True),
             (self.tr("参考音频"), os.path.isfile(self.cfg.get("ref_audio") or ""),
              self.cfg.get("ref_audio") or self.tr("未设置"), True),

@@ -158,6 +158,28 @@ class SelfCheckTest(EngineTestBase):
         self.assertTrue(items[0][1], "版本行只是拿来显示的，不该显示成失败")
         self.assertFalse(items[0][3], "版本不该算必需项，不该拦着人用")
 
+    def test_weight_path_that_no_longer_exists_is_flagged(self):
+        # 以前这两个只判断配置里填没填字符串。文件被挪走、盘符变了之后
+        # 自检照样打勾，用户要到合成最后一步才看到报错。
+        e = self.make()
+        e.cfg["gpt_path"] = os.path.join(self._tmp.name, "gone.ckpt")
+        e.cfg["sovits_path"] = os.path.join(self._tmp.name, "gone.pth")
+        rows = {it[0]: it for it in e.self_check()}
+        self.assertFalse(rows["GPT 权重"][1], "文件不存在时不该判为正常")
+        self.assertFalse(rows["SoVITS 权重"][1], "文件不存在时不该判为正常")
+        self.assertTrue(rows["GPT 权重"][3], "权重缺失应当拦住人")
+
+    def test_weight_path_that_exists_passes(self):
+        e = self.make()
+        p = os.path.join(self._tmp.name, "ok.ckpt")
+        with open(p, "wb") as f:
+            f.write(b"x")
+        e.cfg["gpt_path"] = p
+        e.cfg["sovits_path"] = p
+        rows = {it[0]: it for it in e.self_check()}
+        self.assertTrue(rows["GPT 权重"][1])
+        self.assertTrue(rows["SoVITS 权重"][1])
+
 
 if __name__ == "__main__":
     unittest.main()
