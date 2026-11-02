@@ -126,7 +126,7 @@ window.__push = function (msg) {
 function setStatus(text, kind) {
   const el = $("status");
   el.className = "status" + (kind ? " " + kind : "");
-  el.innerHTML = '<i class="dot"></i>' + esc(text || "");
+  el.innerHTML = '<i class="dot"></i>' + esc(tl(text || ""));
 }
 function syncButtons() {
   $("btnStart").disabled = S.ready || S.busy;
@@ -173,7 +173,7 @@ function addLog(line) {
   const box = $("logBox");
   const div = document.createElement("div");
   div.className = "new";
-  div.textContent = line;
+  div.textContent = tl(line);
   box.appendChild(div);
   // 只留最后 800 行，长时间挂着也不至于越滚越慢
   while (box.childNodes.length > 800) box.removeChild(box.firstChild);
@@ -525,14 +525,22 @@ function drawMonitor(cpuHist, gpuHist) {
   }
   const line = (hist, color) => {
     if (!hist || hist.length < 2) return;
+    // 横坐标以前是 i / (len-1) * w，最后一个点正好落在画布右边缘上，
+    // 1.6 的线宽有一半被裁在外面，看起来就像最右边冒出一条断断续续的
+    // 竖线。留两像素边距，让整条折线都待在画布里。
+    const pad = 2;
+    const span = Math.max(1, w - pad * 2);
+    const step = span / (hist.length - 1);
     ctx.beginPath();
     for (let i = 0; i < hist.length; i++) {
-      const x = (i / (hist.length - 1)) * w;
-      const y = h - (Math.min(100, hist[i]) / 100) * (h - 4) - 2;
+      const x = pad + i * step;
+      const v = Math.max(0, Math.min(100, Number(hist[i]) || 0));
+      const y = h - 3 - (v / 100) * (h - 6);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.6;
+    ctx.lineJoin = "round";
     ctx.stroke();
   };
   line(cpuHist, "#39ffd1");
@@ -543,7 +551,7 @@ function drawMonitor(cpuHist, gpuHist) {
 function addHistory(row) {
   if (!row) return;
   S.lastWav = row.path || S.lastWav;
-  $("info").textContent = row.file + "  ｜ " + row.dur + "s ｜ 耗时 " + row.cost + "s ｜ seed=" + row.seed;
+  $("info").textContent = row.file + "  | " + row.dur + "s | " + t("耗时") + " " + row.cost + "s | seed=" + row.seed;
   const tb = $("histBody");
   const tr = document.createElement("tr");
   tr.className = "flash";
@@ -622,8 +630,8 @@ player.addEventListener("pause", () => {
 
 /* ── 弹层 ─────────────────────────────────────────────── */
 function modal(title, html, okText, okFn, cancelText, cancelFn) {
-  $("modalTitle").textContent = title;
-  $("modalBody").innerHTML = html;
+  $("modalTitle").textContent = tl(title);
+  $("modalBody").innerHTML = tl(html);
   const ok = $("modalOk"), cancel = $("modalCancel");
   ok.textContent = okText || t("知道了");
   ok.onclick = () => { if (okFn) setTimeout(okFn, 0); };

@@ -87,6 +87,8 @@ const I18N = {
     "device.cpu":     "处理器",
   },
 
+    "耗时": "耗时",
+
   en: {
     // top bar
     "sub":            "GPT-SoVITS inference",
@@ -255,6 +257,8 @@ const I18N = {
       "Sharing it still synthesizes, but progress cannot be read — the bar falls back to a character estimate.",
     "接管会先把这个进程关掉，再用这里的运行环境重新启动一份，进度就准了，代价是模型要重新加载一次。":
       "Taking over closes that process and restarts one from here: progress becomes accurate, at the cost of reloading the model.",
+    "耗时": "took",
+
   },
 };
 
@@ -314,4 +318,94 @@ function setLang(code) {
   applyI18n();
   const sel = document.getElementById("langSel");
   if (sel) sel.value = I18N_CUR;
+}
+
+// 后端和前端拼出来的消息走这里翻。界面文字已经由 t() 管了，
+// 但 engine 发过来的日志行、弹窗标题、以及 JS 里拼接的句子不是键值对，
+// 只能用模式匹配逐个换掉。
+const I18N_LINES = [
+  // 后端返回的消息
+  [/^只支持 http 或 https 地址$/, "Only http and https addresses are supported"],
+  [/^打不开浏览器：(.+)$/, "Could not open the browser: $1"],
+  [/^对话框打不开$/, "Could not open the dialog"],
+  [/^素材目录已设置$/, "Assets folder set"],
+  [/^音频 \(\*\.wav;\*\.mp3;\*\.flac\)$/, "Audio (*.wav;*.mp3;*.flac)"],
+  [/^所有文件 \(\*\.\*\)$/, "All files (*.*)"],
+  [/^参考音频已选$/, "Reference audio selected"],
+  [/^还没有生成过音频$/, "No audio has been generated yet"],
+  [/^找不到 ffmpeg\.exe$/, "ffmpeg.exe not found"],
+  [/^已导出：(.+)$/, "Exported: $1"],
+  [/^已保存$/, "Saved"],
+  [/^保存失败：(.+)$/, "Could not save: $1"],
+  [/^没找到 GPT-SoVITS 便携包，需要先准备环境$/,
+   "No GPT-SoVITS package found, it needs to be set up first"],
+  [/^自动找回权重和参考音频时出错：(.+)$/,
+   "Something went wrong while looking for the weights and reference audio: $1"],
+  [/^有 (\d+) 个文件换了位置，已经接上$/, "$1 files moved, now reconnected"],
+  [/^配置里记的位置没有文件了，在别的目录找到同名的，(.*)$/s,
+   "The paths saved in the config point at files that are gone. Same name found " +
+   "elsewhere, so they were switched over:"],
+  [/^有 (\d+) 项要先处理$/, "$1 items need attention first"],
+  [/^自检发现的，不处理的话合成会失败：(.*)$/s,
+   "Found by the self-check. Synthesis will fail until these are fixed:"],
+  [/^点顶上的「自检」看完整清单。$/, "Run Self-check for the full list."],
+  [/^VocalithLoader 已就绪$/, "VocalithLoader is ready"],
+  [/^启动失败，详见 logs.crash\.log$/, "Failed to start, see logs/crash.log"],
+
+  // 没有 GPT-SoVITS 时的引导
+  [/^还差一个 GPT-SoVITS 才能开始$/, "One more piece before you can start"],
+  [/^VocalithLoader 本身只是操作界面，真正干活的是另一个软件，叫 GPT-SoVITS。它不在这个程序里，需要你另外准备。$/,
+   "VocalithLoader is only the interface. The actual work is done by another " +
+   "program called GPT-SoVITS, which is not bundled here and has to be set up separately."],
+  [/^<b>有多大<\/b>：官方整合包解压后大约 30 GB，其中推理必需的部分约 13 GB。请先确认磁盘够用。$/,
+   "<b>How big</b>: the official package is about 30 GB unpacked, and roughly " +
+   "13 GB of that is needed for inference. Check your free space first."],
+  [/^<b>怎么装<\/b>：<br>$/, "<b>How to install</b>:<br>"],
+  [/^1\. 点下面的「打开下载页面」，在页面里找最新的整合包下载<br>$/,
+   "1. Click Open download page below and grab the latest package<br>"],
+  [/^2\. 下载下来是一个压缩包，右键选「解压到当前文件夹」<br>$/,
+   "2. The download is an archive. Right click it and choose Extract here<br>"],
+  [/^3\. 解压完打开那个文件夹，应该能直接看到 <b>runtime<\/b> 文件夹和 <b>api_v2\.py<\/b> 文件<br>$/,
+   "3. Open the extracted folder. You should see a <b>runtime</b> folder and an " +
+   "<b>api_v2.py</b> file<br>"],
+  [/^4\. 回到这里点「选目录」，选那个文件夹$/, "4. Come back here, click Choose folder and pick it"],
+  [/^已经有的话，直接点「选目录」。$/, "If you already have it, just click Choose folder."],
+  [/^打开下载页面$/, "Open download page"],
+  [/^选目录$/, "Choose folder"],
+
+  // 前端拼接的日志与提示
+  [/^\[参考\] 训练样本 (\d+) 条，另有通用音频 (\d+) 条$/,
+   "[ref] $1 training samples, plus $2 generic voice clips"],
+  [/^\[参考\] 训练样本 (\d+) 条$/, "[ref] $1 training samples"],
+  [/^\[参考\] 当前模型是 (.+?)，自动用了它的训练样本当参考$/,
+   "[ref] Current model is $1, so one of its training samples was picked as the reference"],
+  [/^\[参考\] (.+?) 的训练样本，参考文本已跟着填好$/,
+   "[ref] Training sample of $1, the reference text was filled in to match"],
+  [/^\[参考\] 已切换参考音频$/, "[ref] Reference audio switched"],
+  [/^\[参考\] 跟着模型换成 (.+?) 的训练样本$/,
+   "[ref] Switched to a training sample of $1 along with the model"],
+  [/^\[参考\] 切到 (.+)$/, "[ref] Switched to $1"],
+  [/^\[参考\] 试听当前参考音频$/, "[ref] Previewing the current reference audio"],
+  [/^\[批量\] 台词已保存，共 (\d+) 条$/, "[batch] Lines saved, $1 in total"],
+  [/^\[启动\] 后端还没就绪：(.+)$/, "[start] Backend is not ready yet: $1"],
+  [/^\[播放\] 浏览器拒绝播放：(.+)$/, "[play] The browser refused to play it: $1"],
+  [/^\[i18n\] 语言下拉初始化失败$/, "[i18n] Could not set up the language selector"],
+  [/^\[背景\] (.+)$/, "[background] $1"],
+  [/^\[组合\] (.+)$/, "[set] $1"],
+
+  // 角色名。后端在英文模式下已经换过，这里兜住仍带中文的旧数据
+  [/企业 ?2/g, "Enterprise 2"],
+  [/企业/g, "Enterprise"],
+  [/海伦娜/g, "Helena"],
+  [/雪风/g, "Yukikaze"],
+];
+
+// 把一段可能含中文的消息换成英文。翻不出来就原样返回。
+function tl(text) {
+  if (!text || typeof text !== "string" || I18N_CUR !== "en") return text;
+  let out = text;
+  for (const [pat, repl] of I18N_LINES) {
+    if (pat.test(out)) out = out.replace(pat, repl);
+  }
+  return out;
 }

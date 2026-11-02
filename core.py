@@ -754,6 +754,197 @@ def slice_wav_center(src, dst, seconds=5.0):
 
 
 
+_MSG_RULES = [
+    # 顺序有讲究：更具体的规则放前面，否则会被宽泛的规则先吃掉
+    (r"^扫描到 GPT (\d+) 个 / SoVITS (\d+) 个$",
+     r"Scanned \1 GPT weights and \2 SoVITS weights"),
+    (r"^自检：(\d+) 项需要处理（(.+)）$", r"Self-check: \1 items need attention (\2)"),
+    (r"^自检完成，全部通过$", r"Self-check passed"),
+    (r"^VocalithLoader 已就绪$", r"VocalithLoader is ready"),
+    (r"^建目录失败 (.+): (.+)$", r"Could not create the folder \1: \2"),
+    (r"^配置文件读不出来，已退回默认设置：(.+)$",
+     r"Config file could not be read, falling back to defaults: \1"),
+    (r"^保存配置失败: (.+)$", r"Could not save the config: \1"),
+    (r"^扫描模型失败: (.+)$", r"Could not scan for models: \1"),
+    (r"^服务已在运行$", r"The service is already running"),
+    (r"^注意：这台机器有显卡（(.+?)），但配置里写的是 CPU 推理。"
+     r"把「推理设备」切到显卡大约快 3~4 倍$",
+     r"This machine has a GPU (\1) but the config says CPU inference. "
+     r"Switching the device to GPU is roughly three to four times faster"),
+    (r"^端口 (.+?) 上已经有一个 GPT-SoVITS 服务（pid (.+?)），不是本程序启动的$",
+     r"Port \1 already has a GPT-SoVITS service (pid \2) that this app did not start"),
+    (r"^复用它读不到加载和合成的进度，条子只能按字数估；想要准确的进度就点「接管并重启」$",
+     r"Reusing it hides the loading and synthesis progress, so the bars fall back to "
+     r"estimating from character count. Use Take over and restart for accurate progress"),
+    (r"^启动服务 pid=(\d+)，加载模型…$", r"Started the service, pid \1, loading weights"),
+    (r"^硬件：(.+?) ｜ (.+)$", r"Hardware: \1 | \2"),
+    (r"^接管服务：先结束端口 (\d+) 上的进程 pid=(\d+)$",
+     r"Taking over: stopping the process on port \1 first, pid \2"),
+    (r"^端口空出来了，用本程序的运行环境重新启动$",
+     r"Port is free now, restarting with this app's own runtime"),
+    (r"^服务退出，见 logs/api_err\.log$", r"Service exited, see logs/api_err.log"),
+    (r"^加载超时，见 logs/api_err\.log$", r"Loading timed out, see logs/api_err.log"),
+    (r"^服务就绪：(.+?)（本次加载权重 (\d+) 项）$",
+     r"Service ready at \1, \2 weight files loaded this time"),
+    (r"^正在停止服务 pid=(\d+)…$", r"Stopping the service, pid \1"),
+    (r"^端口 (.+?) 上的服务（pid (.+?)）不是本程序启动的，这边停不了它$",
+     r"The service on port \1 (pid \2) was not started by this app, so it cannot be "
+     r"stopped from here"),
+    (r"^想彻底关掉就去它自己的窗口里按 Ctrl\+C；想让它变成这边能管、能看进度的，"
+     r"点「启动服务」选接管$",
+     r"To shut it down completely, press Ctrl+C in its own window. To make it "
+     r"manageable with progress here, start the service and choose take over"),
+    (r"^GPT → (.+?) \((\d+)\)$", r"GPT applied: \1 (\2)"),
+    (r"^SoVITS → (.+?) \((\d+)\)$", r"SoVITS applied: \1 (\2)"),
+    (r"^应用模型失败: (.+)$", r"Could not apply the weights: \1"),
+    (r"^提醒：参考文本为空，音色可能不准，建议填上与音频一致的文字$",
+     r"Heads up: the reference text is empty, so the timbre may be off. "
+     r"Fill in the words actually spoken in the clip"),
+    (r"^参考音频已应用 \((\d+)\)$", r"Reference audio applied (\1)"),
+    (r"^应用参考失败: (.+)$", r"Could not apply the reference audio: \1"),
+    (r"^已绑定：(.+)$", r"Bound to \1"),
+    (r"^已套用组合：(.+)$", r"Applied the set \1"),
+    (r"^参考音频还没选，先拿 (.+?) 顶上（五秒以上、干净人声就行）$",
+     r"No reference audio selected yet, using \1 for now. "
+     r"Any clean voice clip over five seconds will do"),
+    (r"^这段 (\d+) 字，(.+?)上预计 (.+)$",
+     r"\1 characters, about \3 on the \2"),
+    (r"^已生成 (.+?)（(.+?)s / 耗时 (.+?)s）$", r"Wrote \1 (\2 s of audio in \3 s)"),
+    (r"^合成失败: (.+)$", r"Synthesis failed: \1"),
+    (r"^已完成 0/(\d+) 句$", r"0 of \1 lines done"),
+    (r"^正在合成 (\d+) 句…（估算）$", r"Synthesising \1 lines (estimated)"),
+    (r"^正在合成 (\d+) 句…估算 (\d+)%（已等待 (.+?) 秒，外部服务看不到细节）$",
+     r"Synthesising \1 lines, about \2 percent (waited \3 s, "
+     r"an external service hides the details)"),
+    (r"^推理设备写为 (.+?)，下次启动服务生效$",
+     r"Inference device set to \1, takes effect the next time the service starts"),
+    (r"^配置已导入$", r"Config imported"),
+    (r"^已导出：(.+)$", r"Exported: \1"),
+    (r"^没找到 GPT-SoVITS 便携包，需要先准备环境$",
+     r"No GPT-SoVITS package found, it needs to be set up first"),
+    (r"^自动找回权重和参考音频时出错：(.+)$",
+     r"Something went wrong while looking for the weights and reference audio: \1"),
+    (r"^启动失败，详见 logs.crash\.log$", r"Failed to start, see logs/crash.log"),
+    (r"^GPT-SoVITS 目录：(.+)$", r"GPT-SoVITS folder: \1"),
+    (r"^已替换 (.+?)\.mp3$", r"Replaced \1.mp3"),
+    (r"^替换 (.+?) 失败: (.+)$", r"Could not replace \1: \2"),
+    (r"^批量完成 (\d+)/(\d+)，原件备份在 _bak_original$",
+     r"Batch finished \1 of \2, originals backed up in _bak_original"),
+    (r"^参考音频没了，从训练原始音频切了一段：(.+)$",
+     r"Reference audio was gone, sliced a fresh clip from the training source: \1"),
+    (r"^(.+?) 原来的位置没了，已改用：(.+)$",
+     r"\1 is no longer where it was, switched to: \2"),
+    # 状态条与进度条
+    (r"^服务就绪（已有实例）$", r"Service ready (existing instance)"),
+    (r"^服务就绪（外部实例）$", r"Service ready (external instance)"),
+    (r"^服务就绪$", r"Service ready"),
+    (r"^服务未启动$", r"Service not started"),
+    (r"^服务已退出$", r"Service exited"),
+    (r"^服务已停止$", r"Service stopped"),
+    (r"^加载中…$", r"Loading"),
+    (r"^加载超时$", r"Loading timed out"),
+    (r"^正在停止…$", r"Stopping"),
+    (r"^正在停止服务…$", r"Stopping the service"),
+    (r"^正在应用模型…$", r"Applying weights"),
+    (r"^模型已应用$", r"Weights applied"),
+    (r"^模型应用失败$", r"Weights failed to apply"),
+    (r"^模型加载完成$", r"Weights loaded"),
+    (r"^合成中…$", r"Synthesising"),
+    (r"^完成$", r"Done"),
+    (r"^正在加载模型 0/(\d+)$", r"Loading weights 0 of \1"),
+    (r"^正在加载模型 (\d+)/(\d+) · (.+?)（已等待 (.+?) 秒）$",
+     r"Loading weights \1 of \2, \3 (waited \4 s)"),
+    (r"^正在加载模型 (\d+)/(\d+)（已等待 (.+?) 秒）$",
+     r"Loading weights \1 of \2 (waited \3 s)"),
+    (r"^模型加载完毕，正在启动服务…（已等待 (.+?) 秒）$",
+     r"Weights loaded, starting the service (waited \1 s)"),
+    (r"^正在合成 (\d+) 句…（已等待 (.+?) 秒）$",
+     r"Synthesising \1 lines (waited \2 s)"),
+    # 合成进度：先是括号里的等待/预计，再拼整句
+    (r"（已等待 (.+?) 秒\s*/\s*预计 (\d+) 分 (\d+) 秒）",
+     r"(waited \1 s, about \2 min \3 s left)"),
+    (r"（已等待 (.+?) 秒\s*/\s*预计 (\d+) 秒）",
+     r"(waited \1 s, about \2 s left)"),
+    (r"（已等待 (.+?) 秒）", r"(waited \1 s)"),
+    (r"（已等待 (.+?) 秒 / 预计 (.+?)）", r"(waited \1 s, about \2 left)"),
+    (r"^已完成 (\d+)/(\d+) 句 · 正在合成第 (\d+) 句(.*)$",
+     r"\1 of \2 lines done, synthesising line \3 \4"),
+    (r"^已完成 (\d+)/(\d+) 句(.*)$", r"\1 of \2 lines done \3"),
+    (r"^正在切分文本、提取特征…(.*)$", r"Splitting text and extracting features... \1"),
+    # 自检项的名称与说明
+    (r"^GPT-SoVITS 目录$", r"GPT-SoVITS folder"),
+    (r"^requests 模块$", r"requests module"),
+    (r"^输出目录$", r"Output folder"),
+    (r"^日志目录$", r"Log folder"),
+    (r"^端口 (\d+)$", r"Port \1"),
+    (r"^GPT 权重$", r"GPT weights"),
+    (r"^SoVITS 权重$", r"SoVITS weights"),
+    (r"^参考音频$", r"Reference audio"),
+    (r"^Python 版本$", r"Python version"),
+    (r"^运行推理子进程用$", r"launches the inference process"),
+    (r"^HTTP 请求$", r"HTTP requests"),
+    (r"^空闲$", r"free"),
+    (r"^被占用$", r"in use"),
+    (r"^未设置$", r"not set"),
+    (r"^打包运行，不适用$", r"not applicable when packaged"),
+    (r"^导出 mp3 用，缺了不影响合成$", r"only for mp3 export, synthesis works without it"),
+    (r"^加载失败：(.+)$", r"failed to load: \1"),
+    (r"^原因未知$", r"reason unknown"),
+]
+
+# 夹在长句里的碎片，整句规则够不着的地方用它。长的写在前面先换，
+# 否则「未检测到独立显卡」会被「显卡」先拆开。
+_MSG_PIECES = [
+    ("未检测到独立显卡", "no discrete GPU detected"),
+    ("SoVITS 权重", "SoVITS weights"),
+    ("GPT 权重", "GPT weights"),
+    ("参考音频", "Reference audio"),
+    ("推理设备", "inference device"),
+    ("独显", "a discrete card"),
+    ("未知", "unknown"),
+    ("显卡", "GPU"),
+    ("处理器", "CPU"),
+    ("秒左右", "seconds"),
+    (" 分 ", " min "),
+]
+
+# 角色名的中英对照，日志和下拉框都要用
+MODEL_NAME_EN = {
+    "企业 2": "Enterprise 2",
+    "企业2": "Enterprise 2",
+    "企业": "Enterprise",
+    "海伦娜": "Helena",
+    "雪风": "Yukikaze",
+}
+
+
+def localize(text, lang="zh"):
+    """把界面上的中文消息换成英文。
+
+    只在英文模式下动手；匹配不上就原样返回，所以漏词不会崩，
+    最多是那一条还留着中文，之后补规则即可。
+    """
+    if not text or lang != "en":
+        return text
+    before = str(text)
+    out = before
+    for pat, repl in _MSG_RULES:
+        out = re.sub(pat, repl, out)
+    if out != before:
+        for zh, en in _MSG_PIECES:
+            out = out.replace(zh, en)
+    return out
+
+
+def model_name(name, lang="zh"):
+    """企业 -> Enterprise，其余原样。"""
+    if not name:
+        return name
+    if lang != "en":
+        return name
+    return MODEL_NAME_EN.get(name.strip(), name)
+
+
 def fmt_duration(path):
     try:
         with wave.open(path, 'rb') as w:

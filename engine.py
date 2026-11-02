@@ -140,14 +140,23 @@ class Engine:
                 % (getattr(core, "REQUESTS_IMPORT_ERROR", None) or "打包时缺依赖")
             )
 
+    def tr(self, text):
+        """按界面语言翻译一条消息。翻不出来就原样返回，绝不因为翻译丢消息。"""
+        try:
+            return core.localize(text, self.cfg.get("ui_lang") or "zh")
+        except Exception:
+            return text
+
     def log(self, msg):
-        self.emit("log", {"line": "[%s] %s" % (time.strftime("%H:%M:%S"), msg)})
+        self.emit("log", {"line": "[%s] %s" % (time.strftime("%H:%M:%S"), self.tr(msg))})
 
     def status(self, text, ok=False, busy=False):
-        self.emit("status", {"text": text, "ok": ok, "busy": busy})
+        self.emit("status", {"text": self.tr(text), "ok": ok, "busy": busy})
 
     def progress(self, value, text="", mode="determinate"):
-        self.emit("progress", {"value": value, "text": text, "mode": mode})
+        self.emit("progress", {"value": value,
+                               "text": self.tr(text) if text else "",
+                               "mode": mode})
 
     # ── 服务基础 ────────────────────────────────────────────
     def api_base(self):
@@ -930,26 +939,31 @@ class Engine:
         req_err = getattr(core, "REQUESTS_IMPORT_ERROR", None)
 
         items = [
-            ("GPT-SoVITS 目录", core.is_gsv_dir(gsv), gsv or "未设置", True),
+            (self.tr("GPT-SoVITS 目录"), core.is_gsv_dir(gsv),
+             gsv or self.tr("未设置"), True),
             ("runtime\\python.exe",
              os.path.isfile(os.path.join(gsv, "runtime", "python.exe")),
-             "运行推理子进程用", True),
-            ("requests 模块", requests is not None,
-             "HTTP 请求" if requests is not None else ("加载失败：%s" % (req_err or "原因未知")),
+             self.tr("运行推理子进程用"), True),
+            (self.tr("requests 模块"), requests is not None,
+             self.tr("HTTP 请求") if requests is not None
+             else self.tr("加载失败：%s" % (req_err or "原因未知")),
              True),
-            ("输出目录", out_ok, OUTPUT_DIR, True),
-            ("日志目录", log_ok, LOG_DIR, True),
-            ("端口 %s" % self.cfg.get("port"),
+            (self.tr("输出目录"), out_ok, OUTPUT_DIR, True),
+            (self.tr("日志目录"), log_ok, LOG_DIR, True),
+            (self.tr("端口 %s" % self.cfg.get("port")),
              not self.port_open() or self.probe_service(),
-             "空闲" if not self.port_open() else "被占用", True),
-            ("GPT 权重", bool(self.cfg.get("gpt_path")), self.cfg.get("gpt_path") or "未设置", True),
-            ("SoVITS 权重", bool(self.cfg.get("sovits_path")), self.cfg.get("sovits_path") or "未设置", True),
-            ("参考音频", os.path.isfile(self.cfg.get("ref_audio") or ""),
-             self.cfg.get("ref_audio") or "未设置", True),
-            ("Python 版本", py_ok,
-             "打包运行，不适用" if frozen else "%d.%d" % sys.version_info[:2], True),
+             self.tr("空闲") if not self.port_open() else self.tr("被占用"), True),
+            (self.tr("GPT 权重"), bool(self.cfg.get("gpt_path")),
+             self.cfg.get("gpt_path") or self.tr("未设置"), True),
+            (self.tr("SoVITS 权重"), bool(self.cfg.get("sovits_path")),
+             self.cfg.get("sovits_path") or self.tr("未设置"), True),
+            (self.tr("参考音频"), os.path.isfile(self.cfg.get("ref_audio") or ""),
+             self.cfg.get("ref_audio") or self.tr("未设置"), True),
+            (self.tr("Python 版本"), py_ok,
+             self.tr("打包运行，不适用") if frozen
+             else "%d.%d" % sys.version_info[:2], True),
             ("ffmpeg", os.path.isfile(os.path.join(gsv, "runtime", "ffmpeg.exe")),
-             "导出 mp3 用，缺了不影响合成", False),
+             self.tr("导出 mp3 用，缺了不影响合成"), False),
         ]
 
         bad = [n for n, ok, _, req in items if req and not ok]
@@ -1122,9 +1136,19 @@ class Engine:
             return "第%s条" % m.group(1)
         return ""
 
+    MODEL_EN = {
+        "helena": "Helena",
+        "yukikaze": "Yukikaze",
+        "enterprise": "Enterprise",
+        "enterprise2": "Enterprise 2",
+    }
+
     @staticmethod
-    def model_zh(name):
-        return Engine.MODEL_ZH.get((name or "").lower(), name or "")
+    def model_zh(name, lang="zh"):
+        key = (name or "").lower()
+        if lang == "en":
+            return Engine.MODEL_EN.get(key, name or "")
+        return Engine.MODEL_ZH.get(key, name or "")
 
     @staticmethod
     def _wav_dur(path):
@@ -1204,7 +1228,7 @@ class Engine:
                     "no": no,
                     "lang": "ja",
                     "model": name,
-                    "model_zh": self.model_zh(name),
+                    "model_zh": self.model_zh(name, self.cfg.get("ui_lang")),
                 })
         return out
 
