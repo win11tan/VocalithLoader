@@ -148,6 +148,16 @@ class SelfCheckTest(EngineTestBase):
         finally:
             engine_mod.requests = saved
 
+    def test_version_is_listed_first(self):
+        # 用户报问题的时候经常说不清自己在用哪一版。自检清单是唯一一个
+        # 他会主动截图的地方，所以版本必须出现在这里，而且排第一行。
+        e = self.make()
+        items = e.self_check()
+        self.assertEqual(items[0][0], "VocalithLoader")
+        self.assertEqual(items[0][2], core.APP_VERSION)
+        self.assertTrue(items[0][1], "版本行只是拿来显示的，不该显示成失败")
+        self.assertFalse(items[0][3], "版本不该算必需项，不该拦着人用")
+
 
 if __name__ == "__main__":
     unittest.main()

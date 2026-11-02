@@ -1,0 +1,76 @@
+name: 报错 / 崩溃
+description: 打不开、合成报错、声音不对。Something is broken.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **不想注册账号也行。** 在 B 站评论区或私信说一句，附上程序里「自检」的截图，一样能看到。
+
+        下面几栏照着填就行，不用懂技术。带星号的是必填。
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: 什么时候出的问题
+      description: 选一个最接近的。这一步能让我少猜很多。
+      options:
+        - 双击 exe，程序根本没打开
+        - 程序打开了，但点「启动服务」失败
+        - 能开始合成，但中途报错、或者没声音
+        - 合成出来了，但声音不对（破音、语气怪、念错字）
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 说人话就行。你本来想做什么，程序给了什么反应。
+      placeholder: |
+        我想合成一句「早上好」，点了合成，进度条走到一半弹出一个框写着
+        「...」，点掉之后什么都没生成。
+    validations:
+      required: true
+
+  - type: textarea
+    id: check
+    attributes:
+      label: 自检结果
+      description: |
+        点程序里的「自检」按钮，把弹出来的那份清单截图贴进这个框（直接把图片拖进来就行），
+        或者把文字抄下来。
+        这一项能省掉大半来回追问——我好判断是没配好、还是程序本身的问题。
+      placeholder: |
+        ✓ VocalithLoader 1.0.3
+        ✓ GPT-SoVITS 目录
+        ✕ runtime\python.exe
+        ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: 程序是从哪来的
+      options:
+        - 从 Releases 下的压缩包
+        - 从源码跑的
+        - 别人给我的
+        - 记不清了
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（可选，但很有用）
+      description: |
+        程序所在目录里有个 `logs` 文件夹：
+        - `crash.log`：程序自己退出了才有，记录的是它崩溃的原因
+        - `api_err.log`：GPT-SoVITS 那边的报错
+
+        把这两个文件直接拖进这个框就能上传。不想暴露本机路径可以先打码，
+        有用的只是那几行报错。

@@ -939,6 +939,9 @@ class Engine:
         req_err = getattr(core, "REQUESTS_IMPORT_ERROR", None)
 
         items = [
+            # 版本放第一行不是拿来"检查"的，是让用户截图自检的时候顺手把版本
+            # 带上。报问题说不清自己在用哪一版，太常见了。
+            ("VocalithLoader", True, core.APP_VERSION, False),
             (self.tr("GPT-SoVITS 目录"), core.is_gsv_dir(gsv),
              gsv or self.tr("未设置"), True),
             ("runtime\\python.exe",

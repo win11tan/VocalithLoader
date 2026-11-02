@@ -1,0 +1,46 @@
+name: 不会用 / 装不上
+description: 卡在某一步，或者不知道该怎么配。Usage help.
+title: "[使用] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        大多数「不会用」的问题，README 里「快速开始」那节已经写了，先花两分钟看一眼，
+        很可能直接就解决了。
+
+        **不想注册账号也行。** B 站评论区或者私信说一句就可以。
+
+  - type: dropdown
+    id: stuck
+    attributes:
+      label: 卡在哪一步
+      options:
+        - 还没有 GPT-SoVITS，不知道要下载哪个版本
+        - 下载了 GPT-SoVITS，但不知道程序该选哪个目录
+        - 不知道怎么放角色权重（模型文件）
+        - 不知道怎么放参考音频
+        - 点了「启动服务」之后一直转，不知道要等多久
+        - 合成了但没反应，或者找不到生成的文件
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: detail
+    attributes:
+      label: 具体说说
+      description: 你做到哪一步了，卡住的时候屏幕上是什么样子。
+      placeholder: |
+        我下好了 GPT-SoVITS，解压到了 D 盘，程序里选了这个目录，
+        然后顶上「启动服务」是灰的点不了。
+    validations:
+      required: true
+
+  - type: textarea
+    id: check
+    attributes:
+      label: 自检结果（可选）
+      description: |
+        点程序上的「自检」，截图贴进来。
+        贴了我就能直接看出是没配好、还是程序少了什么，不用来回问。

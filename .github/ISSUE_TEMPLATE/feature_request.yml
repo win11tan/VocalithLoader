@@ -1,0 +1,46 @@
+name: 功能建议
+description: 希望加点什么。Feature request.
+title: "[建议] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先说清楚这个项目的范围：它做的是**给 GPT-SoVITS 的推理包一层图形界面**这一件事。
+
+        模型训练不在范围内——那个得上专业界面，塞进来只会让这个工具变得又重又难用。
+
+        建议不一定采纳，但每一条都会看。不采纳一般是两个原因：超出范围，或者这里只有一个人在做。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 想要什么
+      description: 用一句话说清楚想加的功能。不用写成需求文档。
+      placeholder: |
+        希望合成完能自动按台词内容给文件命名，现在全是一串时间戳，回头找不方便。
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 现在是怎么绕过去的
+      description: |
+        这一栏比上一栏更有用。说清楚目前没有这个功能时你是怎么凑合的，
+        我才能判断它值不值得做。
+      placeholder: |
+        现在只能合成完自己去输出目录手动改名，一次做十几句就要改十几遍。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: freq
+    attributes:
+      label: 多久会用上一次
+      options:
+        - 每次用都想要
+        - 偶尔用得上
+        - 只是突然想到了
+    validations:
+      required: true
