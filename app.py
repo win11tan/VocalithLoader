@@ -339,6 +339,23 @@ def main():
         bridge.emit("cfg", eng.snapshot()["cfg"])
         bridge.emit("models", eng.models)
 
+        # 权重和参考音频的路径是写死在配置里的绝对路径，用户整理目录或者换盘
+        # 之后就会失效——界面上表现为几个栏位空着，看起来像文件丢了。这里在
+        # 自检之前先找一遍，能找到就悄悄接上，并且说清楚换到了哪个位置。
+        try:
+            fixed = eng.heal_paths()
+        except Exception as e:
+            eng.log("自动找回权重和参考音频时出错：%s" % e)
+            fixed = []
+        if fixed:
+            bridge.emit("hint", {
+                "title": "有 %d 个文件换了位置，已经接上" % len(fixed),
+                "body": "配置里记的位置没有文件了，在别的目录找到同名的，"
+                        "已经改过来了：<br><br>"
+                        + "<br>".join("· %s<br>　%s" % (it["what"], it["new"])
+                                      for it in fixed),
+            })
+
         # 启动时就把「还能不能正常用」查一遍。以前这些毛病要拖到合成走到最后
         # 一步才暴露——输出目录不存在、requests 没加载都属于这类——报错位置
         # 离原因太远，用户看到的是一句看不懂的异常，而不是该去修什么。

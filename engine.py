@@ -1259,6 +1259,208 @@ class Engine:
         out.sort(key=lambda x: (0 if x.get("model") else 1, x["name"].lower()))
         return out
 
+    # ── 路径自愈：配置里的文件搬走了也能找回来 ────────────────
+    def _weight_dirs(self):
+        """gsv_dir 下可能放权重的目录，按版本命名各来一份。"""
+        gsv = (self.cfg.get("gsv_dir") or "").strip()
+        out = []
+        for n in ("GPT_weights_v2Pro", "GPT_weights_v2", "GPT_weights_v3",
+                  "SoVITS_weights_v2Pro", "SoVITS_weights_v2", "SoVITS_weights_v3",
+                  "GPT_weights", "SoVITS_weights"):
+            p = os.path.join(gsv, n)
+            if os.path.isdir(p):
+                out.append(p)
+        return out
+
+    def _rank_by_role(self, paths, role):
+        """同名角色优先，其次挑最新的。
+
+        全盘扫出来的东西可能有好几版，宁可按最像的挑一个并在日志里说清楚，
+        也不要悄悄换成一个用户没见过的旧模型。
+        """
+        if not paths:
+            return ""
+        role = (role or "").lower()
+
+        def score(p):
+            low = os.path.basename(p).lower()
+            same = 0 if (role and role in low) else 1
+            try:
+                mt = os.path.getmtime(p)
+            except OSError:
+                mt = 0.0
+            return (same, -mt)
+
+        return sorted(paths, key=score)[0]
+
+    def _pick_weight(self, exts, role, budget):
+        """找回权重文件。先看手边的标准目录，没有才全盘扫。"""
+        local = []
+        for d in self._weight_dirs():
+            try:
+                for n in os.listdir(d):
+                    if n.lower().endswith(exts):
+                        local.append(os.path.join(d, n))
+            except OSError:
+                continue
+        if local:
+            return self._rank_by_role(local, role)
+
+        if budget <= 0:
+            return ""
+        found = core.scan_files(
+            core.drive_roots(), exts,
+            name_filter=(lambda low: role in low) if role else None,
+            max_depth=6, time_budget=budget, log=self.log)
+        if not found:
+            return ""
+        return self._rank_by_role([x["path"] for x in found], role)
+
+    def _pick_ref(self, role, budget):
+        """找回参考音频。训练切片优先，其次全盘找，最后才现切。"""
+        cands = self.list_ref_audios()
+        if cands:
+            same = [c for c in cands
+                    if role and (c.get("model") or "").lower().startswith(role)]
+            pool = same or cands
+            pool = sorted(pool, key=lambda c: (0 if c.get("model") else 1,
+                                               abs((c.get("dur") or 0) - 5.0)))
+            if pool:
+                return pool[0]["path"]
+
+        if budget <= 0:
+            return ""
+        found = core.scan_files(
+            core.drive_roots(), core.AUDIO_EXTS,
+            name_filter=(lambda low: role in low) if role else None,
+            max_depth=6, time_budget=budget, log=self.log)
+        # 训练切片排前面：它和 2-name2text.txt 里的原文是一对，合成时
+        # prompt_text 对得上。随手抓一段录音也能跑，但语气和文本会脱节。
+        train = [x for x in found
+                 if "5-wav32k" in x["path"].lower()
+                 or (os.sep + "logs" + os.sep) in x["path"].lower()]
+        for pool in (train, found):
+            for it in pool:
+                if 3.0 <= self._wav_dur(it["path"]) <= 10.0:
+                    return it["path"]
+        # 盘上都翻不到了，只能回训练目录从头捞
+        return self._refs_by_training(role, max(1.0, budget * 0.5))
+
+    def _manifest_originals(self, exp):
+        """训练清单第一列是切片名，从它反推原始音频叫什么。
+
+        cv-10205-1.wav_0000000000_0000056640.wav  ->  cv-10205-1.wav
+        """
+        txt = os.path.join(self.cfg.get("gsv_dir") or "", "logs", exp,
+                           "2-name2text.txt")
+        if not os.path.isfile(txt):
+            return []
+        names, seen = [], set()
+        try:
+            with open(txt, "r", encoding="utf-8") as f:
+                for line in f:
+                    first = line.split("\t")[0].strip()
+                    if not first:
+                        continue
+                    m = re.match(r"(.+?\.(?:wav|mp3|flac))_\d+_\d+\.wav$",
+                                 first, re.I)
+                    if m:
+                        first = m.group(1)
+                    elif not first.lower().endswith((".wav", ".mp3", ".flac")):
+                        continue
+                    if first not in seen:
+                        seen.add(first)
+                        names.append(first)
+                    if len(names) >= 60:
+                        break
+        except Exception:
+            return []
+        return names
+
+    def _refs_by_training(self, role, budget):
+        """最后一条路：回训练阶段把样本重新弄出来。
+
+        训练切片都在 logs/<模型名>/5-wav32k，正常够用。那个目录被清理过的话，
+        就顺着 2-name2text.txt 反推原始音频，找到后截中间五秒另存一份 ——
+        原始音频往往一两分钟，不切会被服务端按 3 到 10 秒的规矩拒掉。
+        """
+        gsv = (self.cfg.get("gsv_dir") or "").strip()
+        logs = os.path.join(gsv, "logs")
+        if not os.path.isdir(logs):
+            return ""
+        try:
+            exps = sorted(os.listdir(logs))
+        except OSError:
+            return ""
+        if role:
+            same = [e for e in exps if e.lower().startswith(role)]
+            exps = same or exps
+
+        for exp in exps:
+            if not os.path.isdir(os.path.join(logs, exp)):
+                continue
+            wav_dir = os.path.join(logs, exp, "5-wav32k")
+            if os.path.isdir(wav_dir):
+                try:
+                    for fn in sorted(os.listdir(wav_dir)):
+                        if not fn.lower().endswith(".wav"):
+                            continue
+                        p = os.path.join(wav_dir, fn)
+                        if 3.0 <= self._wav_dur(p) <= 10.0:
+                            return p
+                except OSError:
+                    pass
+            # 切片也没了，只能拿原始音频现切
+            for orig in self._manifest_originals(exp)[:3]:
+                hit = core.scan_files(
+                    core.drive_roots(), (".wav",),
+                    name_filter=(lambda low, o=orig.lower(): low == o),
+                    max_depth=7, time_budget=max(0.5, budget / 6.0))
+                if not hit:
+                    continue
+                dst = os.path.join(OUTPUT_DIR, "ref_%s_%s" % (exp, orig))
+                if core.slice_wav_center(hit[0]["path"], dst, 5.0):
+                    self.log("参考音频没了，从训练原始音频切了一段：%s"
+                             % os.path.basename(dst))
+                    return dst
+        return ""
+
+    def heal_paths(self, budget=15.0):
+        """配置里的权重或参考音频失效时，把它们找回来。
+
+        返回 [{"what", "old", "new"}]，一条没修就是空列表。
+        只在文件确实不存在时才动手，路径有效的一个字节都不碰。
+        """
+        cfg = self.cfg
+        fixed = []
+        role = (core.role_from_name(cfg.get("gpt_path") or "")
+                or core.role_from_name(cfg.get("sovits_path") or ""))
+
+        for key, exts, label in (("gpt_path", (".ckpt",), "GPT 权重"),
+                                 ("sovits_path", (".pth",), "SoVITS 权重")):
+            cur = (cfg.get(key) or "").strip()
+            if cur and os.path.isfile(cur):
+                continue
+            share = budget * 0.35 if key == "gpt_path" else budget * 0.25
+            new = self._pick_weight(exts, role, share)
+            if new and new != cur:
+                fixed.append({"what": label, "old": cur, "new": new})
+                cfg[key] = new
+
+        cur = (cfg.get("ref_audio") or "").strip()
+        if not cur or not os.path.isfile(cur):
+            new = self._pick_ref(role, budget * 0.4)
+            if new and new != cur:
+                fixed.append({"what": "参考音频", "old": cur, "new": new})
+                cfg["ref_audio"] = new
+
+        if fixed:
+            self.save_config()
+            for it in fixed:
+                self.log("%s 原来的位置没了，已改用：%s" % (it["what"], it["new"]))
+            self.emit("cfg", self.snapshot()["cfg"])
+        return fixed
+
     # ── 波形 / 频谱 / 背景图 ────────────────────────────────
     def wave_data(self, path):
         """峰值给前端画波形，前端不做解码，省得 WebView 里 file:// 被拦。"""

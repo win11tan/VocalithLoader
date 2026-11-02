@@ -598,9 +598,165 @@ def detect_gsv(time_budget=8.0, log=None):
     return found
 
 
+WEIGHT_EXTS = (".ckpt", ".pth")
+AUDIO_EXTS = (".wav", ".mp3", ".flac")
+
+
+def drive_roots():
+    """列出实际存在的盘符根目录，A 到 Z 逐个试，不写死。"""
+    out = []
+    for letter in string.ascii_uppercase:
+        d = letter + ":\\"
+        try:
+            if os.path.isdir(d):
+                out.append(d)
+        except OSError:
+            continue
+    return out
+
+
+def role_from_name(filename):
+    """从权重或样本文件名里取角色名。
+
+    helena-e12.ckpt      -> helena
+    helena_e8_s464.pth   -> helena
+    enterprise2-e8.ckpt  -> enterprise2
+    """
+    base = os.path.basename(filename or "")
+    low = base.lower()
+    for ext in WEIGHT_EXTS + AUDIO_EXTS:
+        if low.endswith(ext):
+            base = base[: -len(ext)]
+            break
+    for sep in ("-", "_", " "):
+        if sep in base:
+            head = base.split(sep)[0].strip()
+            if head:
+                return head.lower()
+    return base.strip().lower()
+
+
+def scan_files(roots, exts, name_filter=None, max_depth=5,
+               time_budget=10.0, skip_dirs=None, log=None):
+    """在若干根目录下找指定扩展名的文件。
+
+    配置里的路径失效多半是因为目录被搬走了，文件其实还在盘上某处。
+    全盘遍历代价太大，所以这里三道闸：限制深度、跳过系统目录、到点收工。
+    返回 [{path, name, size, mtime, role}]，按修改时间从新到旧。
+
+    name_filter 收一个已转小写的文件名，返回 True 才算命中。
+    """
+    exts = tuple(e.lower() for e in exts)
+    skip = set(SKIP_DIRS if skip_dirs is None else skip_dirs)
+    deadline = time.time() + max(0.1, float(time_budget))
+    out = []
+    seen = set()
+    hit_limit = []
+
+    def want(name):
+        low = name.lower()
+        if not low.endswith(exts):
+            return False
+        return True if name_filter is None else bool(name_filter(low))
+
+    def walk(d, depth):
+        if depth > max_depth or time.time() > deadline:
+            if time.time() > deadline:
+                hit_limit.append(1)
+            return
+        try:
+            it = os.scandir(d)
+        except OSError:
+            return
+        with it:
+            for entry in it:
+                if time.time() > deadline:
+                    hit_limit.append(1)
+                    return
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        low = entry.name.lower()
+                        if low in skip or entry.name.startswith("$"):
+                            continue
+                        walk(entry.path, depth + 1)
+                    elif entry.is_file(follow_symlinks=False):
+                        if not want(entry.name):
+                            continue
+                        full = os.path.abspath(entry.path)
+                        if full in seen:
+                            continue
+                        seen.add(full)
+                        try:
+                            st = entry.stat()
+                            size, mtime = st.st_size, st.st_mtime
+                        except OSError:
+                            size, mtime = 0, 0.0
+                        out.append({
+                            "path": full,
+                            "name": entry.name,
+                            "size": size,
+                            "mtime": mtime,
+                            "role": role_from_name(entry.name),
+                        })
+                except OSError:
+                    continue
+
+    for root in roots:
+        if not root or not os.path.isdir(root):
+            continue
+        walk(root, 0)
+        if hit_limit:
+            if log:
+                try:
+                    log("扫描到时间上限，先停下，已找到 %d 个" % len(out))
+                except Exception:
+                    pass
+            break
+
+    out.sort(key=lambda x: x["mtime"], reverse=True)
+    return out
+
+
+def slice_wav_center(src, dst, seconds=5.0):
+    """从一段音频中间截 seconds 秒，另存成 wav。
+
+    训练集里的原始音频往往一两分钟，直接喂给 GPT-SoVITS 会被拒（只收 3 到
+    10 秒），切中间那段最保险：开头结尾常有淡入淡出和静音。
+    只处理 PCM wav，别的格式说明解不了，返回空串。
+    """
+    try:
+        with wave.open(src, "rb") as r:
+            ch, width, rate = r.getnchannels(), r.getsampwidth(), r.getframerate()
+            total = r.getnframes()
+            if not rate or total <= 0:
+                return ""
+            want = int(rate * float(seconds))
+            if total <= want:
+                start = 0
+                want = total
+            else:
+                start = max(0, (total - want) // 2)
+            r.setpos(start)
+            frames = r.readframes(want)
+    except Exception:
+        return ""
+    try:
+        with wave.open(dst, "wb") as w:
+            w.setnchannels(ch)
+            w.setsampwidth(width)
+            w.setframerate(rate)
+            w.writeframes(frames)
+    except Exception:
+        return ""
+    return dst
+
+
+
+
+
 def fmt_duration(path):
     try:
-        with wave.open(path, "rb") as w:
+        with wave.open(path, 'rb') as w:
             return w.getnframes() / float(w.getframerate() or 1)
     except Exception:
         return 0.0
